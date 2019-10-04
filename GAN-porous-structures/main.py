@@ -4,7 +4,7 @@ import os
 os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 
-from modules import models, base_models
+from modules import PGGAN, base_models
 
 img_rows = 16
 img_cols = 16
@@ -36,22 +36,22 @@ filter_size = {1: (3,3),
 discriminators = []
 generators = []
 # Build and compile the Discriminator
-discriminator = base_models.Discriminator(img_shape)
+base_discriminator = base_models.Discriminator(img_shape)
 
 #discriminator = base_models.add_input_c_to_discriminator(base_discriminator)
-discriminator.trainable = False
-discriminators.append([discriminator, None])   
+#base_discriminator.trainable = False
+discriminators.append([base_discriminator, base_discriminator])   
 
 #base_generator = base_models.build_generator(z_dim+1)
 base_generator = base_models.Generator(z_dim)
 #generator = models.build_generator(z_dim, base_generator)
-generators.append([base_generator, None])
+generators.append([base_generator, base_generator])
 
 for i in range(1, n_blocks):
     #Block for discriminator/
     old_discriminator = discriminators[i - 1][0]
 	# create new model for next resolution
-    new_discriminators = models.add_discriminator_block(old_discriminator,
+    new_discriminators = PGGAN.add_discriminator_block(old_discriminator,
                                                        n_filters = n_filters[i]//8,
                                                        filter_size = filter_size[i])
     discriminators.append(new_discriminators)
@@ -59,12 +59,17 @@ for i in range(1, n_blocks):
 
     #Block for generator/
     old_generator = generators[i - 1][0]
-    new_generators = add_generator_block(old_generator.layers[3],
-                                            n_filters = n_filters[i],
-                                            filter_size = filter_size[i])
+    new_generators = PGGAN.add_generator_block(old_generator,
+                                               n_filters = n_filters[i],
+                                               filter_size = filter_size[i])
   
     generators.append(new_generators)
     #/Block for generator
 
-gans = build_composite(discriminators, generators)
+gans = PGGAN.build_composite(discriminators, generators)
 
+
+generators[0][0].summary()
+generators[1][0].summary()
+gans[0][0].summary()
+gans[1][0].summary()

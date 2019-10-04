@@ -8,7 +8,7 @@ from keras.optimizers import Adam
 from keras import backend
 import tensorflow as tf
 
-import modules.base_models
+from modules import base_models
 
 class WeightedSum(Add):
 	# init with default value
@@ -23,32 +23,6 @@ class WeightedSum(Add):
 		# ((1-a) * input1) + (a * input2)
 		output = ((1.0 - self.alpha) * inputs[0]) + (self.alpha * inputs[1])
 		return output
-
-def simple_model():
-
-    input_a = Input(shape=(28,))  
-    x = Dense(256)(input_a)
-
-    input_b = Input(shape=(1,))
-    x = Concatenate()([x, input_b])
-
-    x = Dense(1)(x)
-
-    base_model = Model(inputs=[input_a, input_b], outputs=x)
-    base_model.summary()
-
-    input_aa = Input(shape=(56,))
-    input_bb = Input(shape=(1,))
-
-    y = Dense(256)(input_aa)
-    y = Dense(256)(y)
-    y = Concatenate()([y, input_b])
-
-    y = base_model.layers[-1](y)
-
-    extended_model = Model(inputs=[input_aa, input_b], outputs=y)
-    extended_model.summary()
-
 
 def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, filter_size=(3,3)):
     old_input_shape = list(old_model.input_shape)
@@ -130,7 +104,7 @@ def add_generator_block(old_model, n_filters=64, filter_size=(3,3)):
     g = Conv2DTranspose(1, (3,3), padding='same')(g)
     out_image = Activation('tanh')(g)
     # define model
-    straight_model = Model(old_model.inputs[0], out_image)
+    straight_model = Model(old_model.inputs, out_image)
     
     # get the output layer from old model
     out_old = old_model.layers[-2]#[-1]
@@ -140,7 +114,7 @@ def add_generator_block(old_model, n_filters=64, filter_size=(3,3)):
     # define new output image as the weighted sum of the old and new models
     merged = WeightedSum()([out_image2, out_image])
     # define model
-    fadein_model = Model(old_model.inputs[0], merged)
+    fadein_model = Model(old_model.inputs, merged)
     return [straight_model, fadein_model]
 
 def build_composite(discriminators, generators):

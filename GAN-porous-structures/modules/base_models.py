@@ -11,10 +11,9 @@ import tensorflow as tf
 class Generator(Model):
     def __init__(self, z_dim):
         model = self.__build(z_dim)
-        #model = __add_input_c(model)
         Model.__init__(self, model.inputs, model.outputs)
 
-    def __build(z_dim):
+    def __build(self, z_dim):
   
         input_Z = Input(shape=(z_dim,))
         input_C = Input(shape=(1,))
@@ -46,7 +45,7 @@ class Discriminator(Model):
                       metrics=['accuracy'])
         Model.__init__(self, model.inputs, model.outputs)
 
-    def __build(img_shape:tuple):
+    def __build(self, img_shape:tuple):
 
         input_img = Input(shape = img_shape)
         input_C = Input(shape=(1,), name='Input_C')
@@ -80,23 +79,23 @@ class Discriminator(Model):
         return model
 
 class GAN(Model):
-    def __init__(self, discriminator, generator):
-        discriminator.Trainable = False
-        model = __build(discriminator, generator)
-        model = compile(loss='binary_crossentropy', 
+    def __init__(self, generator, discriminator):
+        discriminator.trainable = False
+        model = self.__build(generator, discriminator)
+        model.compile(loss='binary_crossentropy', 
                         optimizer=Adam())
         Model.__init__(self, model.inputs, model.outputs)
 
-    def __build(generator, discriminator):
+    def __build(self, generator, discriminator):
 
-        input_Z = Input(shape=(z_dim,)) 
-        input_C = Input(shape=(1,))
+        #input_Z = Input(shape=(z_dim,)) 
+        #input_C = Input(shape=(1,))
 
-        img = generator([input_Z, input_C])
+        img = generator(generator.inputs)#generator([input_Z, input_C])
     
         # Combined Generator -> Discriminator model
-        classification = discriminator([img, input_C])
+        classification = discriminator([img, generator.inputs[1]])
     
-        model = Model([input_Z, input_C], classification)
+        model = Model(generator.inputs, classification)
 
         return model
