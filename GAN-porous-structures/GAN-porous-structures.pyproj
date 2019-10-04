@@ -26,6 +26,9 @@
     <Compile Include="modules\models.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="modules\base_models.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="modules\" />

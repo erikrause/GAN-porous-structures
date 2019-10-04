@@ -8,9 +8,7 @@ from keras.optimizers import Adam
 from keras import backend
 import tensorflow as tf
 
-import base_models
-
-
+import modules.base_models
 
 class WeightedSum(Add):
 	# init with default value
@@ -26,12 +24,38 @@ class WeightedSum(Add):
 		output = ((1.0 - self.alpha) * inputs[0]) + (self.alpha * inputs[1])
 		return output
 
-def add_discriminator_block(old_model, n_input_layers=6, n_filters=64, filter_size=(3,3)):
+def simple_model():
+
+    input_a = Input(shape=(28,))  
+    x = Dense(256)(input_a)
+
+    input_b = Input(shape=(1,))
+    x = Concatenate()([x, input_b])
+
+    x = Dense(1)(x)
+
+    base_model = Model(inputs=[input_a, input_b], outputs=x)
+    base_model.summary()
+
+    input_aa = Input(shape=(56,))
+    input_bb = Input(shape=(1,))
+
+    y = Dense(256)(input_aa)
+    y = Dense(256)(y)
+    y = Concatenate()([y, input_b])
+
+    y = base_model.layers[-1](y)
+
+    extended_model = Model(inputs=[input_aa, input_b], outputs=y)
+    extended_model.summary()
+
+
+def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, filter_size=(3,3)):
     old_input_shape = list(old_model.input_shape)
-    input_shape = (old_input_shape[-2]*2, 
-                   old_input_shape[-2]*2, 
-                   old_input_shape[-1])
-    input_img = Input(shape=input_shape)
+    input_img_shape = (old_input_shape[0][-2]*2, 
+                   old_input_shape[0][-2]*2, 
+                   old_input_shape[0][-1])
+    input_img = Input(shape=input_img_shape)
     
     # New block/
     print(n_filters)
@@ -39,41 +63,56 @@ def add_discriminator_block(old_model, n_input_layers=6, n_filters=64, filter_si
     d = Conv2D(n_filters, filter_size, padding='same')(input_img)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
-    d = Dropout(rate = droprate)(d)
+    d = Dropout(rate = 0.2)(d)
     d = AveragePooling2D()(d)
   
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
     d = Conv2D(n_filters_last, filter_size, padding='same')(d)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
-    d = Dropout(rate = droprate)(d)
+    d = Dropout(rate = 0.2)(d)
     d = AveragePooling2D()(d)   
     
     block_new = d
     #/New block
     
     for i in range(n_input_layers, len(old_model.layers)):
-        print(old_model.layers[i])
-        d = old_model.layers[i](d)
+        current_layer = old_model.layers[i]
+        print(current_layer)
+        if current_layer.name == 'Input_C':
+            input_C = current_layer.input
+            continue
+        elif current_layer.name == 'Concat_input_C':
+            d = current_layer([d, input_C])
+
+        else:
+            d = current_layer(d)
         
-    model1 = Model(input_img, d)
+    straight_model = Model([input_img, input_C], d)
     
     downsample = AveragePooling2D()(input_img)
     
-    block_old = old_model.layers[1](downsample)
-    block_old = old_model.layers[2](block_old)
-    block_old = old_model.layers[3](block_old)
-    block_old = old_model.layers[4](block_old)
-    block_old = old_model.layers[5](block_old)
+    block_old = downsample
+    for i in range(1, n_input_layers):
+        block_old = old_model.layers[i](block_old)
     
     d = WeightedSum()([block_old, block_new])
     
     for i in range(n_input_layers, len(old_model.layers)):
-        print(old_model.layers[i])
-        d = old_model.layers[i](d)
+        current_layer = old_model.layers[i]
+        print(current_layer)
+        if current_layer.name == 'Input_C':
+            input_C = current_layer.input
+            continue
+        elif current_layer.name == 'Concat_input_C':
+            d = current_layer([d, input_C])
+
+        else:
+            d = current_layer(d)
         
-    model2 = Model(input_img, d)
-    return [model1, model2]
+    fadein_model = Model([input_img, input_C], d)
+
+    return [straight_model, fadein_model]
 
 def add_generator_block(old_model, n_filters=64, filter_size=(3,3)):
     # get the end of the last block
@@ -91,7 +130,7 @@ def add_generator_block(old_model, n_filters=64, filter_size=(3,3)):
     g = Conv2DTranspose(1, (3,3), padding='same')(g)
     out_image = Activation('tanh')(g)
     # define model
-    model1 = Model(old_model.inputs[0], out_image)
+    straight_model = Model(old_model.inputs[0], out_image)
     
     # get the output layer from old model
     out_old = old_model.layers[-2]#[-1]
@@ -101,23 +140,8 @@ def add_generator_block(old_model, n_filters=64, filter_size=(3,3)):
     # define new output image as the weighted sum of the old and new models
     merged = WeightedSum()([out_image2, out_image])
     # define model
-    model2 = Model(old_model.inputs[0], merged)
-    return [model1, model2]
-
-def build_gan(generator, discriminator):
-
-    #model = Sequential()
-    input_Z = Input(shape=(z_dim,)) 
-    input_C = Input(shape=(1,))
-
-    img = generator([input_Z, input_C])
-    
-    # Combined Generator -> Discriminator model
-    classification = discriminator([img, input_C])
-    
-    model = Model([input_Z, input_C], classification)
-
-    return model
+    fadein_model = Model(old_model.inputs[0], merged)
+    return [straight_model, fadein_model]
 
 def build_composite(discriminators, generators):
 	model_list = list()
@@ -125,16 +149,11 @@ def build_composite(discriminators, generators):
 	for i in range(len(discriminators)):
 		g_models, d_models = generators[i], discriminators[i]
 		# straight-through model
-		d_models[0].trainable = False
-		model1 = build_gan(g_models[0], d_models[0])
-
-		model1.compile(loss='binary_crossentropy', optimizer=Adam())
+		straight_model = base_models.GAN(g_models[0], d_models[0])
 		# fade-in model
-		d_models[1].trainable = False
-		model2 = build_gan(g_models[1], d_models[1])
-		model2.compile(loss='binary_crossentropy', optimizer=Adam())
+		fadein_model = base_models.GAN(g_models[1], d_models[1])
 		# store
-		model_list.append([model1, model2])
+		model_list.append([straight_model, fadein_model])
 	return model_list
 
 
