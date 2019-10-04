@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29215.179
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "GAN-porous-structures", "GAN-porous-structures\GAN-porous-structures.pyproj", "{65A5E4A4-41F8-4914-9B46-0B4C117FE5AE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{65A5E4A4-41F8-4914-9B46-0B4C117FE5AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65A5E4A4-41F8-4914-9B46-0B4C117FE5AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {94E4C593-09D5-4A46-BE44-5CAC59020275}
+	EndGlobalSection
+EndGlobal
