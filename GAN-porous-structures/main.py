@@ -4,7 +4,13 @@ import os
 os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 
+
+
+
 from modules import PGGAN, base_models
+
+from modules.DataLoader import DataLoader
+
 
 img_rows = 16
 img_cols = 16
@@ -22,6 +28,8 @@ z_dim = 100
 
 DIRECTORY = 'E:/Практика/beadpack'
 DATASET_DIR = 'E:/Практика/beadpack/dataset'
+
+data_loader = DataLoader(DATASET_DIR+'/{}.png', 500, (500,500))
 
 n_blocks = 4
 
@@ -68,8 +76,5 @@ for i in range(1, n_blocks):
 
 gans = PGGAN.build_composite(discriminators, generators)
 
+generators[n_blocks-1][0].summary()
 
-generators[0][0].summary()
-generators[1][0].summary()
-gans[0][0].summary()
-gans[1][0].summary()

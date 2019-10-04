@@ -23,6 +23,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="main.py" />
+    <Compile Include="modules\DataLoader.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="modules\PGGAN.py">
       <SubType>Code</SubType>
     </Compile>
