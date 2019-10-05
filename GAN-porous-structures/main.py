@@ -7,10 +7,10 @@ os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
 
 
-from modules import PGGAN, base_models
-
-from modules.DataLoader import DataLoader
-
+from modules.models import PGGAN, base_models
+from modules.preprocess import DataLoader
+from modules.ModelStrogae import ModelStrogae
+from modules.History import History
 
 img_rows = 16
 img_cols = 16
@@ -37,44 +37,32 @@ n_filters = {1: 64,
              2: 32,
              3: 16}
 
-filter_size = {1: (3,3),
-               2: (3,3),
-               3: (3,3)}        ## Протестировать фильтры 5х5
+filter_sizes = {1: (3,3),
+                2: (3,3),
+                3: (3,3)}        ## Протестировать фильтры 5х5
 
-discriminators = []
-generators = []
-# Build and compile the Discriminator
-base_discriminator = base_models.Discriminator(img_shape)
 
-#discriminator = base_models.add_input_c_to_discriminator(base_discriminator)
-#base_discriminator.trainable = False
-discriminators.append([base_discriminator, base_discriminator])   
+models = ModelStrogae()
 
-#base_generator = base_models.build_generator(z_dim+1)
-base_generator = base_models.Generator(z_dim)
-#generator = models.build_generator(z_dim, base_generator)
-generators.append([base_generator, base_generator])
+models.buildModels(img_shape,z_dim,4,n_filters,filter_sizes)
 
-for i in range(1, n_blocks):
-    #Block for discriminator/
-    old_discriminator = discriminators[i - 1][0]
-	# create new model for next resolution
-    new_discriminators = PGGAN.add_discriminator_block(old_discriminator,
-                                                       n_filters = n_filters[i]//8,
-                                                       filter_size = filter_size[i])
-    discriminators.append(new_discriminators)
-    #/Block for discriminator
+history = History(DIRECTORY,
+                  n_blocks,
+                  models.discriminators,
+                  models.generators,
+                  models.gans)
 
-    #Block for generator/
-    old_generator = generators[i - 1][0]
-    new_generators = PGGAN.add_generator_block(old_generator,
-                                               n_filters = n_filters[i],
-                                               filter_size = filter_size[i])
-  
-    generators.append(new_generators)
-    #/Block for generator
 
-gans = PGGAN.build_composite(discriminators, generators)
+history.model_iteration
+for i in range(0,10):
+    history.d_loss = 0.6*i
+    history.g_loss = 1.6*i
+    history.d_acc = 76*i
+    history.iteration = 200+i*100
+    history.save_metrics()
 
-generators[n_blocks-1][0].summary()
-
+#from keras.utils import plot_model
+#for i in range(0, 4):
+#    for j in range(0,2):
+#        plot_model(models.generators[i][j], to_file='E:/prob/generators-{}-{}.pdf'.format(i,j))
+#        plot_model(models.discriminators[i][j], to_file='E:/prob/discriminators-{}-{}.pdf'.format(i,j))
