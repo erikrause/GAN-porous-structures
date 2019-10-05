@@ -7,17 +7,16 @@ os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
 
 
-from modules.models import PGGAN, base_models
+#from modules.models import base_models
 from modules.preprocess import DataLoader
-from modules.ModelStrogae import ModelStrogae
-from modules.History import History
+from modules.ModelHandler import ModelHandler
 
 img_rows = 16
 img_cols = 16
 channels = 1
 droprate = 0.2
 
-# Input image dimensions
+# Start input image dimensions
 img_shape = (img_rows, img_cols, channels)
 
 # Size of the noise vector, used as input to the Generator
@@ -42,24 +41,15 @@ filter_sizes = {1: (3,3),
                 3: (3,3)}        ## Протестировать фильтры 5х5
 
 
-models = ModelStrogae()
+model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes)
 
-models.buildModels(img_shape,z_dim,4,n_filters,filter_sizes)
-
-history = History(DIRECTORY,
-                  n_blocks,
-                  models.discriminators,
-                  models.generators,
-                  models.gans)
-
-
-history.model_iteration
+model_handler.model_iteration=0
 for i in range(0,10):
-    history.d_loss = 0.6*i
-    history.g_loss = 1.6*i
-    history.d_acc = 76*i
-    history.iteration = 200+i*100
-    history.save_metrics()
+    model_handler.d_loss = 0.6*i
+    model_handler.g_loss = 1.6*i
+    model_handler.d_acc = 76*i
+    model_handler.iteration = 200+i*100
+    model_handler.save_metrics()
 
 #from keras.utils import plot_model
 #for i in range(0, 4):

@@ -1,14 +1,18 @@
+from modules.models import pggan, base_models
+
 import pickle
 import tensorflow as tf
 
 import os.path
 
-class History():
-    def __init__(self, directory, n_blocks, d_models, g_models, gan_models):
+class ModelHandler():
+    def __init__(self, directory, img_shape, z_dim, n_blocks, n_filters, filter_sizes):     #, discriminators, generators, gans):
         self.directory = directory + '/History'
-        self.d_models = d_models
-        self.g_models = g_models 
-        self.gan_models = gan_models
+        self.discriminators = discriminators
+        self.generators = generators 
+        self.gans = gans
+        self.n_blocks = n_blocks
+        self.build_models()
         self.d_losses = []
         self.g_losses = []
         self.d_acces = []
@@ -31,6 +35,8 @@ class History():
             self.model_iteration = self.d_losses[-1][-1]
             self.is_logs_loaded = True
             print('All logs loaded.')
+            self.load_weights()
+            print('All weights loaded.')
         else:
             tf.gfile.MkDir(self.directory)
             print('Starting new logs.')
@@ -50,8 +56,42 @@ class History():
             #discriminators[i][1].load_weights('E:/Практика/beadpack/History-x64-fadein-8k/discriminators/fadein_discriminator-{}.h5'.format(i))         
             #generators[i][0].load_weights('E:/Практика/beadpack/History-x64-fadein-8k/generators/normal_generator-{}.h5'.format(i))
             #generators[i][1].load_weights('E:/Практика/beadpack/History-x64-fadein-8k/generators/fadein_generator-{}.h5'.format(i))
-            models_count = len(d_models)
+            models_count = len(discriminators)
             return __check_file('/discriminators/normal_discriminator-{}.h5'.format(models_count))
+
+    def load_weights(self):
+        for i in range(0, self.n_blocks):
+            self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(directory, i))
+            self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(directory, i))
+            self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(directory, i))
+            self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(directory, i))
+
+    def build_models(self):
+        base_discriminator = base_models.Discriminator(start_shape)
+        self.discriminators.append([base_discriminator, base_discriminator])   
+
+        base_generator = base_models.Generator(z_dim)
+        self.generators.append([base_generator, base_generator])
+
+        for i in range(1, n_blocks):
+            #Block for discriminator/
+            old_discriminator = self.discriminators[i - 1][0]
+	        # create new model for next resolution
+            new_discriminators = pggan.add_discriminator_block(old_discriminator,
+                                                               n_filters = n_filters[i]//8,
+                                                               filter_size = filter_sizes[i])
+            self.discriminators.append(new_discriminators)
+            #/Block for discriminator
+
+            #Block for generator/
+            old_generator = self.generators[i - 1][0]
+            new_generators = pggan.add_generator_block(old_generator,
+                                                       n_filters = n_filters[i],
+                                                       filter_size = filter_sizes[i])
+            self.generators.append(new_generators)
+            #/Block for generator
+
+        self.gans = pggan.build_composite(self.discriminators, self.generators)
         
     def save_metrics(self):#, d_loss, g_loss, d_acc):
 
@@ -79,20 +119,20 @@ class History():
     
     def save_models(self):
         i = 0
-        for i in range(0, len(self.g_models)):
+        for i in range(0, len(self.generators)):
             tf.gfile.MkDir('{self.directory}/generators'.format(self=self))
-            self.g_models[i][0].save_weights('{self.directory}/generators/normal_generator-{i}.h5'.format(self=self, i=i))
-            self.g_models[i][1].save_weights('{self.directory}/generators/fadein_generator-{i}.h5'.format(self=self, i=i))
+            self.generators[i][0].save_weights('{self.directory}/generators/normal_generator-{i}.h5'.format(self=self, i=i))
+            self.generators[i][1].save_weights('{self.directory}/generators/fadein_generator-{i}.h5'.format(self=self, i=i))
       
-        for i in range(0, len(self.d_models)):
+        for i in range(0, len(self.discriminators)):
             tf.gfile.MkDir('{self.directory}/discriminators'.format(self=self))
-            self.d_models[i][0].save_weights('{self.directory}/discriminators/normal_discriminator-{i}.h5'.format(self=self, i=i))
-            self.d_models[i][1].save_weights('{self.directory}/discriminators/fadein_discriminator-{i}.h5'.format(self=self, i=i))
+            self.discriminators[i][0].save_weights('{self.directory}/discriminators/normal_discriminator-{i}.h5'.format(self=self, i=i))
+            self.discriminators[i][1].save_weights('{self.directory}/discriminators/fadein_discriminator-{i}.h5'.format(self=self, i=i))
       
-        for i in range(0, len(self.gan_models)):
+        for i in range(0, len(self.gans)):
             tf.gfile.MkDir('{self.directory}/gans'.format(self=self))
-            self.gan_models[i][0].save_weights('{self.directory}/gans/normal_gan-{i}.h5'.format(self=self, i=i))
-            self.gan_models[i][1].save_weights('{self.directory}/gans/fadein_gan-{i}.h5'.format(self=self, i=i))
+            self.gans[i][0].save_weights('{self.directory}/gans/normal_gan-{i}.h5'.format(self=self, i=i))
+            self.gans[i][1].save_weights('{self.directory}/gans/fadein_gan-{i}.h5'.format(self=self, i=i))
       
     def generate_imgs(self, resolution, iteration, generator, n=4, fadein=False):
         z = np.random.normal(0, 1, (n, z_dim))
