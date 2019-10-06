@@ -40,10 +40,10 @@ class Generator(Model):
 class Discriminator(Model):
     def __init__(self, img_shape:tuple):
         model = self.__build(img_shape)
-        model.compile(loss='binary_crossentropy',
+        Model.__init__(self, model.inputs, model.outputs)
+        self.compile(loss='binary_crossentropy',
                       optimizer=Adam(),
                       metrics=['accuracy'])
-        Model.__init__(self, model.inputs, model.outputs)
 
     def __build(self, img_shape:tuple):
 
@@ -82,9 +82,9 @@ class GAN(Model):
     def __init__(self, generator, discriminator):
         discriminator.trainable = False
         model = self.__build(generator, discriminator)
-        model.compile(loss='binary_crossentropy', 
-                        optimizer=Adam())
         Model.__init__(self, model.inputs, model.outputs)
+        self.compile(loss='binary_crossentropy', 
+                     optimizer=Adam())
 
     def __build(self, generator, discriminator):
 

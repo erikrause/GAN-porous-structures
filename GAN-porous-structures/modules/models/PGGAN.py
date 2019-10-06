@@ -30,8 +30,8 @@ def update_fadein(models, step, n_steps):
     # update the alpha for each model
     for model in models:
         for layer in model.layers:
-            if isinstance(base_layer, pggan.WeightedSum):
-                backend.set_value(base_layer.alpha, alpha)
+            if isinstance(layer, WeightedSum):
+                backend.set_value(layer.alpha, alpha)
 
 def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, filter_size=(3,3)):
     old_input_shape = list(old_model.input_shape)
@@ -71,8 +71,11 @@ def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, fi
         else:
             d = current_layer(d)
         
-    straight_model = Model([input_img, input_C], d)
-    
+    straight_model = Model([input_img, input_C], d) #base_models.Discriminator
+    straight_model.compile(loss='binary_crossentropy',
+                      optimizer=Adam(),
+                      metrics=['accuracy'])
+
     downsample = AveragePooling2D()(input_img)
     
     block_old = downsample
@@ -94,6 +97,9 @@ def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, fi
             d = current_layer(d)
         
     fadein_model = Model([input_img, input_C], d)
+    fadein_model.compile(loss='binary_crossentropy',
+                      optimizer=Adam(),
+                      metrics=['accuracy'])
 
     return [straight_model, fadein_model]
 

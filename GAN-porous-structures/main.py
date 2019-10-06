@@ -4,12 +4,10 @@ import os
 os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 
-
-
-
 #from modules.models import base_models
 from modules.preprocess import DataLoader
 from modules.ModelHandler import ModelHandler
+import numpy as np
 
 img_rows = 16
 img_cols = 16
@@ -38,18 +36,34 @@ n_filters = {1: 64,
 
 filter_sizes = {1: (3,3),
                 2: (3,3),
-                3: (3,3)}        ## Протестировать фильтры 5х5
+                3: (5,5)}        ## Протестировать фильтры 5х5
 
 
-model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes)
+model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)
 
-model_handler.model_iteration=0
-for i in range(0,10):
-    model_handler.d_loss = 0.6*i
-    model_handler.g_loss = 1.6*i
-    model_handler.d_acc = 76*i
-    model_handler.iteration = 200+i*100
-    model_handler.save_metrics()
+######################################
+# MAIN LOOPv7
+######################################
+
+# Итерации на каждый слой:
+#n_fadein = np.array([0, 6000, 8000, 10000])
+#n_straight = np.array([2500, 2500, 2500, 2500])
+n_fadein = np.array([0, 300, 8000, 10000])
+n_straight = np.array([200, 2500, 2500, 2500])
+
+model_handler.train(n_straight, n_fadein)
+
+
+
+
+#for i in range(0,10):
+#    model_handler.d_loss = 0.6*i
+#    model_handler.g_loss = 1.6*i
+#    model_handler.d_acc = 76*i
+#    model_handler.iteration = 200+i*100
+#    model_handler.save_metrics()
+
+
 
 #from keras.utils import plot_model
 #for i in range(0, 4):

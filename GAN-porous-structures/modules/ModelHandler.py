@@ -4,22 +4,33 @@ import pickle
 import tensorflow as tf
 import numpy as np
 from keras import backend
+import time
+from PIL import Image
+import matplotlib.pyplot as plt
 
 import os.path
 
 class ModelHandler():
-    def __init__(self, directory:str, img_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader):     #, discriminators, generators, gans):
+    def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader):     #, discriminators, generators, gans):
         self.directory = directory + '/History'
         # Models initialize:
-        self.discriminators = discriminators
-        self.generators = generators 
-        self.gans = gans
+        self.discriminators = []
+        self.generators = [] 
+        self.gans = []
         self.n_blocks = n_blocks
-        self.build_models()
+        self.start_shape = start_shape
+        upscale = 2**(n_blocks-1)
+        self.end_shape = (start_shape[0]*upscale,
+                          start_shape[1]*upscale,
+                          start_shape[2])
+        self.z_dim = z_dim
+        self.build_models(start_shape, z_dim, n_filters, filter_sizes)
+        #
         # Logs:
         self.d_losses = []
         self.g_losses = []
         self.d_acces = []
+        #
         # For current metrics:
         self.d_loss = []
         self.g_loss = []
@@ -28,7 +39,15 @@ class ModelHandler():
         self.model_iteration = 0
         self.is_fadein = False
         self.is_logs_loaded = False
-        
+        #
+        # Train params:
+        self.batch_size = 64
+        self.sample_interval = 100
+        self.data_loader = data_loader
+        self.z_global = np.random.normal(0, 1, (1, self.z_dim))
+        #
+        tf.gfile.MkDir('{self.directory}/next/'.format(self=self))
+
         if self.__check_log_files():
             self.d_losses = self.load_logs('/d_losses.log')
             self.d_loss = self.d_losses[-1][0]
@@ -66,19 +85,19 @@ class ModelHandler():
 
     def load_weights(self):
         for i in range(0, self.n_blocks):
-            self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(directory, i))
-            self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(directory, i))
-            self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(directory, i))
-            self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(directory, i))
+            self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(self.directory, i))
+            self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(self.directory, i))
+            self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(self.directory, i))
+            self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(self.directory, i))
 
-    def build_models(self):
+    def build_models(self, start_shape:tuple, z_dim:int, n_filters, filter_sizes):
         base_discriminator = base_models.Discriminator(start_shape)
         self.discriminators.append([base_discriminator, base_discriminator])   
 
         base_generator = base_models.Generator(z_dim)
         self.generators.append([base_generator, base_generator])
 
-        for i in range(1, n_blocks):
+        for i in range(1, self.n_blocks):
             #Block for discriminator/
             old_discriminator = self.discriminators[i - 1][0]
 	        # create new model for next resolution
@@ -143,7 +162,7 @@ class ModelHandler():
             self.gans[i][1].save_weights('{self.directory}/gans/fadein_gan-{i}.h5'.format(self=self, i=i))
       
     def generate_imgs(self, resolution, iteration, generator, n=4, fadein=False):
-        z = np.random.normal(0, 1, (n, z_dim))
+        z = np.random.normal(0, 1, (n, self.z_dim))
 
         imgs_mean = np.random.random((n, 1))*2 - 1
         gen_imgs = generator.predict([z, imgs_mean])
@@ -169,59 +188,61 @@ class ModelHandler():
             img.save('{file_name}-{e}.png'.format(file_name=file_name, e=e))
     
     # не используется
-    def sample_next(self, resolution, iteration, generators):   
-        self.gen_two(generators[2][0], '/x64-norm{}'.format(iteration))
-        self.gen_two(generators[3][0], '/x128-norm{}'.format(iteration))
-        self.gen_two(generators[3][1], '/x128-fade{}'.format(iteration))
+    def sample_next(self, resolution, iteration):   
+        self.gen_two(self.generators[2][0], '/next/x64-norm{}'.format(iteration))
+        self.gen_two(self.generators[2][1], '/next/x64-fade{}'.format(iteration))
+        self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
+        self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
     # не используется
     def gen_two(self, generator, filename):
-        imgs_mean = np.array([[0]])
-        gen_img = generator.predict([z_global, imgs_mean])
+        imgs_mean = np.array([[0.15]])
+        gen_img = generator.predict([self.z_global, imgs_mean])
         fig=plt.figure()
         plt.imshow(gen_img[0,:,:,0], cmap='gray')
         fig.savefig(self.directory + filename)
         plt.close(fig)
 
         imgs_mean = np.array([[0.65]])
-        gen_img = generator.predict([z_global, imgs_mean])
+        gen_img = generator.predict([self.z_global, imgs_mean])
         fig=plt.figure()
         plt.imshow(gen_img[0,:,:,0], cmap='gray')
         fig.savefig(self.directory + filename+'2')
         plt.close(fig)
 
-    def train(self, n_straight:int, n_fadein:int, batch_size:int):
+    def train(self, n_straight:int, n_fadein:int):
   
       if self.model_iteration == 0:
-          self.is_fadein = Fasle
-          self.train_block(n_straight[0], batch_size)
+          self.is_fadein = False
+          self.train_block(n_straight[0])
           self.save_models()
           self.model_iteration += 1
       #sample_images(g_straight)
   
-      for i in range(self.model_iteration, len(self.discriminators)):
-        self.is_fadein = True
-        self.train_block(n_fadein[i], batch_size)  
-        #print('/G_fadein' + str(i))
-        #sample_images(g_fadein)
-        self.save_models()
+      while self.model_iteration < len(self.discriminators):
+          i = self.model_iteration
+          self.is_fadein = True
+          self.train_block(n_fadein[i])  
+          #print('/G_fadein' + str(i))
+          #sample_images(g_fadein)
+          self.save_models()
 
-        self.is_fadein = Fasle
-        self.train_block(n_straight[i], batch_size)
-        #print('/G_straight' + str(i))
-        #sample_images(g_straight)
-        self.save_models()
+          self.is_fadein = False
+          self.train_block(n_straight[i])
+          #print('/G_straight' + str(i))
+          #sample_images(g_straight)
+          self.save_models()
 
-    def train_block(self,
-                iterations:int,
-                batch_size:int):
+          self.model_iteration += 1
+
+    def train_block(self, iterations:int):
         # Get models for current resolution layer:
-        d_model = self.generators[self.model_iteration][int(self.is_fadein)]
+        d_model = self.discriminators[self.model_iteration][int(self.is_fadein)]
         g_model = self.generators[self.model_iteration][int(self.is_fadein)]
-        gan_model = self.generators[self.model_iteration][int(self.is_fadein)]
+        gan_model = self.gans[self.model_iteration][int(self.is_fadein)]
         #self.iteration = 0     
         # Labels for real/fake imgs
-        real = np.ones((batch_size, 1))
-        fake = np.zeros((batch_size, 1))
+        real = np.ones((self.batch_size, 1))
+        fake = np.zeros((self.batch_size, 1))
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int(self.is_fadein)))
 
@@ -229,7 +250,7 @@ class ModelHandler():
 
             start_time = time.time()
             if self.is_fadein:
-                update_fadein([g_model, d_model, gan_model], iteration, iterations)    
+                pggan.update_fadein([g_model, d_model, gan_model], iteration, iterations)    
             # -------------------------
             #  Train the Discriminator
             # -------------------------
@@ -240,12 +261,12 @@ class ModelHandler():
         
             downscale = 128 // resolution
             # Get a random batch of real images
-            imgs = data_loader.get_batch(batch_size, 128, downscale)
+            imgs = self.data_loader.get_batch(self.batch_size, self.end_shape[:2], downscale)
             imgs_mean = np.mean(imgs, axis=(1,2))
         
             # Generate a batch of fake images
-            z = np.random.normal(0, 1, (batch_size, z_dim))
-            gen_imgs = self.generator.predict([z, imgs_mean])
+            z = np.random.normal(0, 1, (self.batch_size, self.z_dim))
+            gen_imgs = g_model.predict([z, imgs_mean])
 
             # Train Discriminator
             d_loss_real = d_model.train_on_batch([imgs, imgs_mean], real)
@@ -257,7 +278,7 @@ class ModelHandler():
             # ---------------------
 
             # Generate a batch of fake images
-            z = np.random.normal(0, 1, (batch_size, z_dim))
+            z = np.random.normal(0, 1, (self.batch_size, self.z_dim))
             #gen_imgs = generator.predict([z,imgs_mean])
 
             # Train Generator
@@ -266,14 +287,14 @@ class ModelHandler():
             end_time = time.time()
             iteration_time = end_time - start_time
         
-            if (iteration + 1) % sample_interval == 0:
+            if (iteration + 1) % self.sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
-                self.iterations[-1] = iteration + 1
+                self.iteration = iteration + 1
                 self.save_metrics()
 
                 # Output training progress
                 print("%d [D loss: %f, acc.: %.2f%%] [G loss: %f] [Time: %f.4]" %
-                      (self.iteration + 1, self.d_loss, 100.0 * self.accuracy, self.g_loss, iteration_time))
+                      (self.iteration, self.d_loss, 100.0 * self.d_acc, self.g_loss, iteration_time))
 
                 # Output a sample of generated image
                 #if (iteration / sample_interval) % 10 == 0:
@@ -289,7 +310,6 @@ class ModelHandler():
 
     #for debug:
     def __get_alpha(self, model):
-        for model in models:
-            for layer in model.layers:
-                if isinstance(base_layer, pggan.WeightedSum):
-                    print(backend.get_value(base_layer.alpha))
+        for layer in model.layers:
+            if isinstance(layer, pggan.WeightedSum):
+                print(backend.get_value(layer.alpha))
