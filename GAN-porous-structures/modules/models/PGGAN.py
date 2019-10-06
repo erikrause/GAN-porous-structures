@@ -24,6 +24,15 @@ class WeightedSum(Add):
 		output = ((1.0 - self.alpha) * inputs[0]) + (self.alpha * inputs[1])
 		return output
 
+def update_fadein(models, step, n_steps):
+    # calculate current alpha (linear from 0 to 1)
+    alpha = step / float(n_steps - 1)
+    # update the alpha for each model
+    for model in models:
+        for layer in model.layers:
+            if isinstance(base_layer, pggan.WeightedSum):
+                backend.set_value(base_layer.alpha, alpha)
+
 def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, filter_size=(3,3)):
     old_input_shape = list(old_model.input_shape)
     input_img_shape = (old_input_shape[0][-2]*2, 
