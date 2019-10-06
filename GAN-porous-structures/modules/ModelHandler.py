@@ -41,7 +41,7 @@ class ModelHandler():
         self.is_logs_loaded = False
         #
         # Train params:
-        self.batch_size = 64
+        self.batch_size = 2
         self.sample_interval = 100
         self.data_loader = data_loader
         self.z_global = np.random.normal(0, 1, (1, self.z_dim))
@@ -240,14 +240,14 @@ class ModelHandler():
         d_model = self.discriminators[self.model_iteration][int(self.is_fadein)]
         g_model = self.generators[self.model_iteration][int(self.is_fadein)]
         gan_model = self.gans[self.model_iteration][int(self.is_fadein)]
-        #self.iteration = 0     
+        self.iteration = 0     
         # Labels for real/fake imgs
         real = np.ones((self.batch_size, 1))
         fake = np.zeros((self.batch_size, 1))
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int(self.is_fadein)))
 
-        while self.iteration < iterations+1:
+        while self.iteration < iterations:
 
             start_time = time.time()
             if self.is_fadein:
@@ -288,6 +288,8 @@ class ModelHandler():
             end_time = time.time()
             iteration_time = end_time - start_time
         
+            self.iteration += 1
+
             if (self.iteration) % self.sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
                 #self.iteration += 1
@@ -304,10 +306,8 @@ class ModelHandler():
                 self.__get_alpha(d_model)
                 #get_alpha(generator)
 
-                self.generate_imgs(resolution, self.iteration + 1, g_model, 4, self.is_fadein)
+                self.generate_imgs(resolution, self.iteration, g_model, 4, self.is_fadein)
                 #self.sample_next(resolution, self.iteration + 1)       # В ОТДЕЛЬНЫЙ ПОТОК
-
-            self.iteration += 1
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int(self.is_fadein)))
 
