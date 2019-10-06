@@ -46,7 +46,7 @@ class ModelHandler():
         self.data_loader = data_loader
         self.z_global = np.random.normal(0, 1, (1, self.z_dim))
         #
-        tf.gfile.MkDir('{self.directory}/next/'.format(self=self))
+        
 
         if self.__check_log_files():
             self.d_losses = self.load_logs('/d_losses.log')
@@ -63,6 +63,7 @@ class ModelHandler():
             print('All weights loaded.')
         else:
             tf.gfile.MkDir(self.directory)
+            tf.gfile.MkDir('{self.directory}/next/'.format(self=self))
             print('Starting new logs.')
 
     def __check_file(self, filename):
@@ -234,7 +235,7 @@ class ModelHandler():
 
           self.model_iteration += 1
 
-    def train_block(self, iterations:int):
+    def train_block(self, iterations):
         # Get models for current resolution layer:
         d_model = self.discriminators[self.model_iteration][int(self.is_fadein)]
         g_model = self.generators[self.model_iteration][int(self.is_fadein)]
@@ -246,11 +247,11 @@ class ModelHandler():
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int(self.is_fadein)))
 
-        for iteration in range(iterations):
+        while self.iteration < iterations+1:
 
             start_time = time.time()
             if self.is_fadein:
-                pggan.update_fadein([g_model, d_model, gan_model], iteration, iterations)    
+                pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)    
             # -------------------------
             #  Train the Discriminator
             # -------------------------
@@ -287,9 +288,9 @@ class ModelHandler():
             end_time = time.time()
             iteration_time = end_time - start_time
         
-            if (iteration + 1) % self.sample_interval == 0:
+            if (self.iteration) % self.sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
-                self.iteration = iteration + 1
+                #self.iteration += 1
                 self.save_metrics()
 
                 # Output training progress
@@ -304,7 +305,9 @@ class ModelHandler():
                 #get_alpha(generator)
 
                 self.generate_imgs(resolution, self.iteration + 1, g_model, 4, self.is_fadein)
-                self.sample_next(resolution, self.iteration + 1)
+                #self.sample_next(resolution, self.iteration + 1)       # В ОТДЕЛЬНЫЙ ПОТОК
+
+            self.iteration += 1
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int(self.is_fadein)))
 
