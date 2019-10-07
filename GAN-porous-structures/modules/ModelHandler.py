@@ -41,8 +41,8 @@ class ModelHandler():
         self.is_logs_loaded = False
         #
         # Train params:
-        self.batch_size = 2
-        self.sample_interval = 100
+        #self.batch_size = 64
+        #self.sample_interval = 100
         self.data_loader = data_loader
         self.z_global = np.random.normal(0, 1, (1, self.z_dim))
         #
@@ -210,11 +210,11 @@ class ModelHandler():
         fig.savefig(self.directory + filename+'2')
         plt.close(fig)
 
-    def train(self, n_straight:int, n_fadein:int):
+    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int):
   
       if self.model_iteration == 0:
           self.is_fadein = False
-          self.train_block(n_straight[0])
+          self.train_block(n_straight[0], batch_size, sample_interval)
           self.save_models()
           self.model_iteration += 1
       #sample_images(g_straight)
@@ -222,28 +222,28 @@ class ModelHandler():
       while self.model_iteration < len(self.discriminators):
           i = self.model_iteration
           self.is_fadein = True
-          self.train_block(n_fadein[i])  
+          self.train_block(n_fadein[i], batch_size, sample_interval)  
           #print('/G_fadein' + str(i))
           #sample_images(g_fadein)
           self.save_models()
 
           self.is_fadein = False
-          self.train_block(n_straight[i])
+          self.train_block(n_straight[i], batch_size, sample_interval)
           #print('/G_straight' + str(i))
           #sample_images(g_straight)
           self.save_models()
 
           self.model_iteration += 1
 
-    def train_block(self, iterations):
+    def train_block(self, iterations:int, batch_size:int, sample_interval:int):
         # Get models for current resolution layer:
         d_model = self.discriminators[self.model_iteration][int(self.is_fadein)]
         g_model = self.generators[self.model_iteration][int(self.is_fadein)]
         gan_model = self.gans[self.model_iteration][int(self.is_fadein)]
         self.iteration = 0     
         # Labels for real/fake imgs
-        real = np.ones((self.batch_size, 1))
-        fake = np.zeros((self.batch_size, 1))
+        real = np.ones((batch_size, 1))
+        fake = np.zeros((batch_size, 1))
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int(self.is_fadein)))
 
@@ -262,11 +262,11 @@ class ModelHandler():
         
             downscale = 128 // resolution
             # Get a random batch of real images
-            imgs = self.data_loader.get_batch(self.batch_size, self.end_shape[:2], downscale)
+            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:2], downscale)
             imgs_mean = np.mean(imgs, axis=(1,2))
         
             # Generate a batch of fake images
-            z = np.random.normal(0, 1, (self.batch_size, self.z_dim))
+            z = np.random.normal(0, 1, (batch_size, self.z_dim))
             gen_imgs = g_model.predict([z, imgs_mean])
 
             # Train Discriminator
@@ -279,18 +279,18 @@ class ModelHandler():
             # ---------------------
 
             # Generate a batch of fake images
-            z = np.random.normal(0, 1, (self.batch_size, self.z_dim))
+            z = np.random.normal(0, 1, (batch_size, self.z_dim))
             #gen_imgs = generator.predict([z,imgs_mean])
 
             # Train Generator
             self.g_loss = gan_model.train_on_batch([z, imgs_mean], real)
-        
+            
             end_time = time.time()
             iteration_time = end_time - start_time
         
             self.iteration += 1
 
-            if (self.iteration) % self.sample_interval == 0:
+            if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
                 #self.iteration += 1
                 self.save_metrics()

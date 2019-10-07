@@ -1,9 +1,9 @@
 #################
 #FOR AMD DEVICES:
-import os
-import plaidml.keras
-plaidml.keras.install_backend()
-os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+#import os
+#import plaidml.keras
+#plaidml.keras.install_backend()
+#os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 #from modules.models import base_models
 from modules.preprocess import DataLoader
@@ -25,7 +25,7 @@ z_dim = 100
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
 
 DIRECTORY = 'E:/Практика/beadpack'
-DATASET_DIR = 'E:/Практика/beadpack/dataset'
+DATASET_DIR = DIRECTORY + '/dataset'
 
 data_loader = DataLoader(DATASET_DIR+'/{}.png', 500, (500,500))
 
@@ -37,7 +37,7 @@ n_filters = {1: 64,
 
 filter_sizes = {1: (3,3),
                 2: (3,3),
-                3: (5,5)}        ## Протестировать фильтры 5х5
+                3: (3,3)}        ## Протестировать фильтры 5х5
 
 
 model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)
@@ -46,25 +46,13 @@ model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, 
 # MAIN LOOPv7
 ######################################
 
+batch_size = 64
+sample_interval = 100
 # Итерации на каждый слой:
-#n_fadein = np.array([0, 6000, 8000, 10000])
-#n_straight = np.array([2500, 2500, 2500, 2500])
-n_fadein = np.array([0, 100, 100, 10000])
-n_straight = np.array([0, 100, 100, 2500])
+n_fadein = np.array([0, 6000, 8000, 10000])
+n_straight = np.array([2500, 2500, 2500, 2500])
 
-model_handler.train(n_straight, n_fadein)
-
-
-
-
-#for i in range(0,10):
-#    model_handler.d_loss = 0.6*i
-#    model_handler.g_loss = 1.6*i
-#    model_handler.d_acc = 76*i
-#    model_handler.iteration = 200+i*100
-#    model_handler.save_metrics()
-
-
+model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 
 #from keras.utils import plot_model
 #for i in range(0, 4):
