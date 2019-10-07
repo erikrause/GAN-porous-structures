@@ -88,10 +88,10 @@ class ModelHandler():
     def load_weights(self):
         models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
         for i in range(0, self.n_blocks):
-            self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(model_iteration, i))
-            self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(model_iteration, i))
-            self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(model_iteration, i))
-            self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(model_iteration, i))
+            self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(models_dir, i))
+            self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(models_dir, i))
+            self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(models_dir, i))
+            self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(models_dir, i))
 
     def build_models(self, start_shape:tuple, z_dim:int, n_filters, filter_sizes):
         base_discriminator = base_models.Discriminator(start_shape)
@@ -162,7 +162,7 @@ class ModelHandler():
             self.discriminators[i][1].save_weights('{models_dir}/discriminators/fadein_discriminator-{i}.h5'.format(models_dir=models_dir, i=i))
       
         for i in range(0, len(self.gans)):
-            tf.gfile.MkDir('{self.directory}/gans'.format(models_dir=models_dir))
+            tf.gfile.MkDir('{models_dir}/gans'.format(models_dir=models_dir))
             self.gans[i][0].save_weights('{models_dir}/gans/normal_gan-{i}.h5'.format(models_dir=models_dir, i=i))
             self.gans[i][1].save_weights('{models_dir}/gans/fadein_gan-{i}.h5'.format(models_dir=models_dir, i=i))
       
