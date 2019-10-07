@@ -245,6 +245,9 @@ class ModelHandler():
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int_fadein))
 
+        resolution = self.start_shape[0]*2**(n_resolution)
+        print(resolution, resolution)
+
         while self.iteration < iterations:
 
             start_time = time.time()
@@ -257,7 +260,7 @@ class ModelHandler():
             #resolution = self.d_model.inputs[0].shape[2].value
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
             #resolution = d_model.inputs[0].shape[1][1]
-            resolution = self.start_shape[0]*(self.model_iteration//2**int_straight+1)
+            
             
             downscale = 128 // resolution
             # Get a random batch of real images
