@@ -218,23 +218,26 @@ class ModelHandler():
           if (i % 2 == 0):    # if model is straight
               self.is_fadein = False
               iterations = n_straight[i//2]
+              n_resolution = i//2
           else:
               self.is_fadein = True
               iterations = n_fadein[(i+1)//2]
+              n_resolution = (i+1)//2
 
-          self.train_block(iterations, batch_size, sample_interval)
+          self.train_block(iterations, batch_size, sample_interval, n_resolution)
           self.model_iteration += 1
           self.iteration = 0 
           self.save_models()
 
-    def train_block(self, iterations:int, batch_size:int, sample_interval:int):
+    def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
         # Get models for current resolution layer:
         int_fadein = int(self.is_fadein)
         is_straight = not self.is_fadein
         int_straight = int(is_straight)
-        d_model = self.discriminators[self.model_iteration//2**int_straight][int_fadein]
-        g_model = self.generators[self.model_iteration//2**int_straight][int_fadein]
-        gan_model = self.gans[self.model_iteration//2**int_straight][int_fadein]
+
+        d_model = self.discriminators[n_resolution][int_fadein]
+        g_model = self.generators[n_resolution][int_fadein]
+        gan_model = self.gans[n_resolution][int_fadein]
         #self.iteration = 0     
         # Labels for real/fake imgs
         real = np.ones((batch_size, 1))
