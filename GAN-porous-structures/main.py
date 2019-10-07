@@ -13,13 +13,9 @@ import numpy as np
 img_rows = 16
 img_cols = 16
 channels = 1
-droprate = 0.2
 
 # Start input image dimensions
 img_shape = (img_rows, img_cols, channels)
-
-# Size of the noise vector, used as input to the Generator
-z_dim = 100
 
 #DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
@@ -27,20 +23,22 @@ z_dim = 100
 # directory_name/ (слэш только в конце названия папки!).
 DIRECTORY = ''
 DATASET_DIR = DIRECTORY + 'datasets/beadpack/'
-
+# Initialize dataset:
 data_loader = DataLoader(DATASET_DIR+'/{}.png', 500, (500,500))
 
-n_blocks = 4
-
+# Size of the noise vector, used as input to the Generator
+z_dim = 100
+# Number of progressive resolution blocks:
+n_blocks = 4    
+# Filters for each resolution block:
 n_filters = {1: 64,
              2: 32,
-             3: 16}
+             3: 16}    
 
 filter_sizes = {1: (3,3),
                 2: (3,3),
                 3: (3,3)}        ## Протестировать фильтры 5х5
-
-
+# Build a models (если модели и логи лежат в папке History, то будут загружены с диска):
 model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)
 
 ######################################
