@@ -55,9 +55,10 @@ class ModelHandler():
             self.g_loss = self.g_losses[-1][0]
             self.d_acces = self.load_logs('/d_acces.log')
             self.d_acc = self.d_acces[-1][0]
-            self.iteration = self.d_losses[-1][-2]
-            self.model_iteration = self.d_losses[-1][-1]
-            self.is_logs_loaded = True
+            self.iteration = self.d_losses[-1][-3]
+            self.model_iteration = self.d_losses[-1][-2]
+            self.is_fadein = bool(self.d_losses[-1][-1])
+            self.is_logs_loaded = True  # Не используется
             print('All logs loaded.')
             self.load_weights()
             print('All weights loaded.')
@@ -139,7 +140,7 @@ class ModelHandler():
         return logs
 
     def __update_metric(self, metric, logs):
-        logs.append([metric, self.iteration, self.model_iteration])
+        logs.append([metric, self.iteration, self.model_iteration, int(self.is_fadein)])
 
     def __save_logs(self, logs, filename):
         with open('{self.directory}/{filename}'.format(self=self, filename=filename), 'wb') as file:
@@ -212,40 +213,34 @@ class ModelHandler():
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int):
   
-      if self.model_iteration == 0:
-          self.is_fadein = False
-          self.train_block(n_straight[0], batch_size, sample_interval)
-          self.save_models()
-          self.model_iteration += 1
-      #sample_images(g_straight)
-  
       while self.model_iteration < len(self.discriminators):
           i = self.model_iteration
-          self.is_fadein = True
-          self.train_block(n_fadein[i], batch_size, sample_interval)  
-          #print('/G_fadein' + str(i))
-          #sample_images(g_fadein)
-          self.save_models()
+          if (i % 2 == 0):    # if model is straight
+              self.is_fadein = False
+              iterations = n_straight[i//2]
+          else:
+              self.is_fadein = True
+              iterations = n_fadein[(i+1)//2]
 
-          self.is_fadein = False
-          self.train_block(n_straight[i], batch_size, sample_interval)
-          #print('/G_straight' + str(i))
-          #sample_images(g_straight)
-          self.save_models()
-
+          self.train_block(iterations, batch_size, sample_interval)
           self.model_iteration += 1
+          self.iteration = 0 
+          self.save_models()
 
     def train_block(self, iterations:int, batch_size:int, sample_interval:int):
         # Get models for current resolution layer:
-        d_model = self.discriminators[self.model_iteration][int(self.is_fadein)]
-        g_model = self.generators[self.model_iteration][int(self.is_fadein)]
-        gan_model = self.gans[self.model_iteration][int(self.is_fadein)]
-        self.iteration = 0     
+        int_fadein = int(self.is_fadein)
+        is_straight = not self.is_fadein
+        int_straight = int(is_straight)
+        d_model = self.discriminators[self.model_iteration//2**int_straight][int_fadein]
+        g_model = self.generators[self.model_iteration//2**int_straight][int_fadein]
+        gan_model = self.gans[self.model_iteration//2**int_straight][int_fadein]
+        #self.iteration = 0     
         # Labels for real/fake imgs
         real = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))
 
-        print('Training-{}-{}-model/'.format(self.model_iteration, int(self.is_fadein)))
+        print('Training-{}-{}-model/'.format(self.model_iteration, int_fadein))
 
         while self.iteration < iterations:
 
@@ -259,8 +254,8 @@ class ModelHandler():
             #resolution = self.d_model.inputs[0].shape[2].value
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
             #resolution = d_model.inputs[0].shape[1][1]
-            resolution = self.start_shape[0]*(self.model_iteration+1)
-        
+            resolution = self.start_shape[0]*(self.model_iteration//2**int_straight+1)
+            
             downscale = 128 // resolution
             # Get a random batch of real images
             imgs = self.data_loader.get_batch(batch_size, self.end_shape[:2], downscale)
@@ -293,24 +288,21 @@ class ModelHandler():
 
             if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
-                #self.iteration += 1
                 self.save_metrics()
+                self.generate_imgs(resolution, self.iteration, g_model, 1, self.is_fadein)
+                #self.sample_next(resolution, self.iteration + 1)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
                 print("%d [D loss: %f, acc.: %.2f%%] [G loss: %f] [Time: %f.4]" %
                       (self.iteration, self.d_loss, 100.0 * self.d_acc, self.g_loss, iteration_time))
 
                 # Output a sample of generated image
-                #if (iteration / sample_interval) % 10 == 0:
                 #sample_images(generator)
                 # Get alpha for debug:
                 self.__get_alpha(d_model)
-                #get_alpha(generator)
 
-                self.generate_imgs(resolution, self.iteration, g_model, 4, self.is_fadein)
-                #self.sample_next(resolution, self.iteration + 1)       # В ОТДЕЛЬНЫЙ ПОТОК
 
-        print('/End of training-{}-{}-model'.format(self.model_iteration, int(self.is_fadein)))
+        print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
 
     #for debug:
     def __get_alpha(self, model):

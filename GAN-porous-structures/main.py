@@ -1,9 +1,9 @@
 #################
 #FOR AMD DEVICES:
-#import os
-#import plaidml.keras
-#plaidml.keras.install_backend()
-#os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+import os
+import plaidml.keras
+plaidml.keras.install_backend()
+os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 
 #from modules.models import base_models
@@ -46,11 +46,13 @@ model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, 
 # MAIN LOOPv7
 ######################################
 
-batch_size = 64
-sample_interval = 100
+batch_size = 16
+sample_interval = 50
 # Итерации на каждый слой:
-n_fadein = np.array([0, 6000, 8000, 10000])
-n_straight = np.array([3500, 2500, 2500, 2500])
+#n_fadein = np.array([0, 6000, 8000, 10000])
+#n_straight = np.array([3500, 2500, 2500, 2500])
+n_fadein = np.array([0, 100, 200, 10000])
+n_straight = np.array([50, 150, 250, 2500])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 
