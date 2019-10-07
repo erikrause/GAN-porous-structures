@@ -258,7 +258,8 @@ class ModelHandler():
         
             #resolution = self.d_model.inputs[0].shape[2].value
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
-            resolution = d_model.inputs[0].shape[1][1]
+            #resolution = d_model.inputs[0].shape[1][1]
+            resolution = self.start_shape[0]*(self.model_iteration+1)
         
             downscale = 128 // resolution
             # Get a random batch of real images
