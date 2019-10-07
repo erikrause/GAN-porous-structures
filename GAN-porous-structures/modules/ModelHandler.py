@@ -12,7 +12,7 @@ import os.path
 
 class ModelHandler():
     def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader):     #, discriminators, generators, gans):
-        self.directory = directory + '/History'
+        self.directory = directory + 'History'
         # Models initialize:
         self.discriminators = []
         self.generators = [] 

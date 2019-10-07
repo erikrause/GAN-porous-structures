@@ -1,9 +1,9 @@
 #################
 #FOR AMD DEVICES:
-#import os
-#import plaidml.keras
-#plaidml.keras.install_backend()
-#os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+import os
+import plaidml.keras
+plaidml.keras.install_backend()
+os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 #from modules.models import base_models
 from modules.preprocess import DataLoader
@@ -24,8 +24,9 @@ z_dim = 100
 #DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
 
-DIRECTORY = 'E:/Практика/beadpack'
-DATASET_DIR = DIRECTORY + '/dataset'
+# directory_name/ (слэш только в конце названия папки!).
+DIRECTORY = ''
+DATASET_DIR = DIRECTORY + 'datasets/beadpack/'
 
 data_loader = DataLoader(DATASET_DIR+'/{}.png', 500, (500,500))
 
