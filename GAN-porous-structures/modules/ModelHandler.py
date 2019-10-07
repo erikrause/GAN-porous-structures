@@ -213,7 +213,7 @@ class ModelHandler():
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int):
   
-      while self.model_iteration < len(self.discriminators):
+      while self.model_iteration//2 < len(self.discriminators):
           i = self.model_iteration
           if (i % 2 == 0):    # if model is straight
               self.is_fadein = False
