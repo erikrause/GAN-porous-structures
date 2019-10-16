@@ -50,13 +50,13 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         input_C = Input(shape=(1,), name='Input_C')
     
-        d = Conv3D(32, (3,3), padding='same', name='concat_layer')(input_img)
+        d = Conv3D(32, kernel_size=3, padding='same', name='concat_layer')(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha=0.01)(d) 
         d = Dropout(rate = 0.2)(d)
         d = AveragePooling3D()(d)
     
-        d = Conv3D(64, (3,3), padding='same')(d)
+        d = Conv3D(64, kernel_size=3, padding='same')(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha=0.01)(d)
         d = Dropout(rate = 0.2)(d)

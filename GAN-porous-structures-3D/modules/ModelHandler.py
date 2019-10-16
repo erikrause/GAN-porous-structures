@@ -22,7 +22,8 @@ class ModelHandler():
         upscale = 2**(n_blocks-1)
         self.end_shape = (start_shape[0]*upscale,
                           start_shape[1]*upscale,
-                          start_shape[2])
+                          start_shape[2]*upscale,
+                          start_shape[3])
         self.z_dim = z_dim
         self.build_models(start_shape, z_dim, n_filters, filter_sizes)
         #
@@ -276,8 +277,8 @@ class ModelHandler():
             
             downscale = 128 // resolution
             # Get a random batch of real images
-            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:2], downscale)
-            imgs_mean = np.mean(imgs, axis=(1,2))
+            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:3], downscale)
+            imgs_mean = np.mean(imgs, axis=(1,2,3))
         
             # Generate a batch of fake images
             z = np.random.normal(0, 1, (batch_size, self.z_dim))

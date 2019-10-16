@@ -39,12 +39,12 @@ class DataLoader(object):
         voxels[i] = self.dataset[z_value:z_value + resolution[0],
                                      x_value:x_value + resolution[1], 
                                      y_value:y_value + resolution[2]]
-    dz = resolution[0]//downscale
-    dx = resolution[1]//downscale
-    dy = resolution[2]//downscale
+    #dz = resolution[0]//downscale
+    #dx = resolution[1]//downscale
+    #dy = resolution[2]//downscale
 
     voxels = voxels.reshape(batch_size, 128, 128, 128, 1)
-    voxels = self.downsample_network.calculate(voxels, 8)
+    voxels = self.downsample_network.calculate(voxels, downscale)
 
     voxels = voxels / 127.5 - 1.0
     return voxels

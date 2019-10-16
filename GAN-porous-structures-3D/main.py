@@ -19,7 +19,7 @@ import numpy as np
 
 # Start input image dimensions
 channels = 1
-start_shape = (8, 8, channels)
+start_shape = (8, 8, 8, channels)
 
 #DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
@@ -40,10 +40,10 @@ n_filters = {1: 64,
              3: 16,
              4: 8}    
 
-filter_sizes = {1: (3,3),
-                2: (3,3),
-                3: (5,5),
-                4: (7,7)}
+filter_sizes = {1: 3,
+                2: 3,
+                3: 3,
+                4: 3}
 # Build a models (если модели и логи лежат в папке History, то будут загружены с диска):
 #WEIGHTS_DIR = 'models-custom/'
 model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)

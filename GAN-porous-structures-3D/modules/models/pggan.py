@@ -33,24 +33,25 @@ def update_fadein(models, step, n_steps):
             if isinstance(layer, WeightedSum):
                 backend.set_value(layer.alpha, alpha)
 
-def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, filter_size=(3,3)):
+def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, filter_size=3):
     old_input_shape = list(old_model.input_shape)
     input_img_shape = (old_input_shape[0][-2]*2, 
-                   old_input_shape[0][-2]*2, 
+                   old_input_shape[0][-2]*2,
+                   old_input_shape[0][-2]*2,
                    old_input_shape[0][-1])
     input_img = Input(shape=input_img_shape)
     
     # New block/
     print(n_filters)
     
-    d = Conv3D(n_filters, filter_size, padding='same')(input_img)
+    d = Conv3D(n_filters, kernel_size=filter_size, padding='same')(input_img)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
     d = Dropout(rate = 0.2)(d)
     d = AveragePooling3D()(d)
   
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
-    d = Conv3D(n_filters_last, filter_size, padding='same')(d)
+    d = Conv3D(n_filters_last, kernel_size=filter_size, padding='same')(d)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
     d = Dropout(rate = 0.2)(d)
@@ -103,20 +104,20 @@ def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, fi
 
     return [straight_model, fadein_model]
 
-def add_generator_block(old_model, n_filters=64, filter_size=(3,3)):
+def add_generator_block(old_model, n_filters=64, filter_size=3):
     # get the end of the last block
     block_end = old_model.layers[-3].output
     # upsample, and define new block
     upsampling = UpSampling3D()(block_end)
-    g = Conv3DTranspose(n_filters, filter_size, padding='same')(upsampling)
+    g = Conv3DTranspose(n_filters, kernel_size=filter_size, padding='same')(upsampling)
     g = BatchNormalization()(g)
     g = LeakyReLU(alpha=0.01)(g)
     
-    g = Conv3DTranspose(n_filters, filter_size, padding='same')(g)
+    g = Conv3DTranspose(n_filters, kernel_size=filter_size, padding='same')(g)
     g = BatchNormalization()(g)
     g = LeakyReLU(alpha=0.01)(g)
     # add new output layer
-    g = Conv3DTranspose(1, (3,3), padding='same')(g)
+    g = Conv3DTranspose(1, kernel_size=3, padding='same')(g)
     out_image = Activation('tanh')(g)
     # define model
     straight_model = Model(old_model.inputs, out_image)
