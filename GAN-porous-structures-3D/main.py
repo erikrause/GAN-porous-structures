@@ -1,9 +1,15 @@
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-amd', action='store_true', help='Enable PlaidML backend (for AMD devices)')
+args = parser.parse_args()
+
 #################
-#FOR AMD DEVICES:
-import os
-import plaidml.keras
-plaidml.keras.install_backend()
-os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+#ENABLE PLAIDML FOR AMD DEVICES:
+if args.amd:
+    import os
+    import plaidml.keras
+    plaidml.keras.install_backend()
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 
 #from modules.models import base_models
