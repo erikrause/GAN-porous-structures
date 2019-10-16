@@ -114,7 +114,7 @@ class ModelHandler():
             old_discriminator = self.discriminators[i - 1][0]
 	        # create new model for next resolution
             new_discriminators = pggan.add_discriminator_block(old_discriminator,
-                                                               n_filters = n_filters[i]//2,#//8,
+                                                               n_filters = n_filters[i]//4,#//8,
                                                                filter_size = filter_sizes[i])
             self.discriminators.append(new_discriminators)
             #/Block for discriminator
@@ -251,6 +251,9 @@ class ModelHandler():
         d_model = self.discriminators[n_resolution][int_fadein]
         g_model = self.generators[n_resolution][int_fadein]
         gan_model = self.gans[n_resolution][int_fadein]
+
+        d_model.summary()
+        g_model.summary()
         #self.iteration = 0     
         # Labels for real/fake imgs
         real = np.ones((batch_size, 1))
