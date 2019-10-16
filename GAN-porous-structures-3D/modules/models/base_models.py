@@ -20,15 +20,15 @@ class Generator(Model):
 
         combined = Concatenate()([input_Z, input_C])
     
-        g = Dense(64 * 4 * 4 * 4)(combined)
-        g = Reshape((4, 4, 4, 64))(g)
+        g = Dense(32 * 4 * 4 * 4)(combined)
+        g = Reshape((4, 4, 4, 32))(g)
   
-        g = Conv3DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
+        g = Conv3DTranspose(32, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
         g = UpSampling3D()(g)
     
-        g = Conv3DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
+        g = Conv3DTranspose(32, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
     
@@ -50,13 +50,13 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         input_C = Input(shape=(1,), name='Input_C')
     
-        d = Conv3D(32, kernel_size=3, padding='same', name='concat_layer')(input_img)
+        d = Conv3D(16, kernel_size=3, padding='same', name='concat_layer')(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha=0.01)(d) 
         d = Dropout(rate = 0.2)(d)
         d = AveragePooling3D()(d)
     
-        d = Conv3D(64, kernel_size=3, padding='same')(d)
+        d = Conv3D(16, kernel_size=3, padding='same')(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha=0.01)(d)
         d = Dropout(rate = 0.2)(d)
@@ -66,7 +66,7 @@ class Discriminator(Model):
 
         combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(256)(combined)
+        d = Dense(128)(combined)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha=0.01)(d)
         d = Dropout(rate = 0.2)(d)

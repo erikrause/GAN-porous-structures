@@ -35,15 +35,15 @@ z_dim = 100
 # Number of progressive resolution blocks:
 n_blocks = 5    
 # Filters for each resolution block:
-n_filters = {1: 64,
-             2: 32,
+n_filters = {1: 16,
+             2: 16,
              3: 16,
              4: 8}    
 
 filter_sizes = {1: 3,
                 2: 3,
                 3: 3,
-                4: 3}
+                4: 5}
 # Build a models (если модели и логи лежат в папке History, то будут загружены с диска):
 #WEIGHTS_DIR = 'models-custom/'
 model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
@@ -52,7 +52,7 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters
 # MAIN LOOP
 ######################################
 
-batch_size = 1
+batch_size = 64
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 3000, 8000, 10000])
