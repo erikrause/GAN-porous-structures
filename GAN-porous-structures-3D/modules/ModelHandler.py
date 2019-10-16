@@ -176,9 +176,9 @@ class ModelHandler():
             self.gans[i][1].save_weights('{models_dir}/gans/fadein_gan-{i}.h5'.format(models_dir=models_dir, i=i))
       
     def generate_imgs(self, resolution, iteration, generator, n_voxels=1, n_slices=1, step=1, fadein=False):
-        z = np.random.normal(0, 1, (n, self.z_dim))
+        z = np.random.normal(0, 1, (n_voxels, self.z_dim))
 
-        imgs_mean = np.random.random((n, 1))*2 - 1
+        imgs_mean = np.random.random((n_voxels, 1))*2 - 1
         gen_imgs = generator.predict([z, imgs_mean])
 
         gen_imgs = (gen_imgs+1)*127.5
@@ -196,11 +196,11 @@ class ModelHandler():
                                                                                                fn=fn,
                                                                                                iteration=iteration,
                                                                                                i=i, j=j*step)
-            e = 0
-            while os.path.exists('{file_name}-{e}.png'.format(file_name=file_name, e=e)):
-                e += 1
+                e = 0
+                while os.path.exists('{file_name}-{e}.png'.format(file_name=file_name, e=e)):
+                    e += 1
             
-            img.save('{file_name}-{e}.png'.format(file_name=file_name, e=e))
+                img.save('{file_name}-{e}.png'.format(file_name=file_name, e=e))
     
     # не используется
     def sample_next(self, resolution, iteration):   
@@ -308,7 +308,7 @@ class ModelHandler():
             if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
                 self.save_metrics()
-                self.generate_imgs(resolution, self.iteration, g_model, 1, self.is_fadein)
+                self.generate_imgs(resolution, self.iteration, g_model, 1, 4, 2, fadein=self.is_fadein)
                 #self.sample_next(resolution, self.iteration + 1)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
