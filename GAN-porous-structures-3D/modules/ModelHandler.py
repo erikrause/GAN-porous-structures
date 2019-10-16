@@ -174,7 +174,7 @@ class ModelHandler():
             self.gans[i][0].save_weights('{models_dir}/gans/normal_gan-{i}.h5'.format(models_dir=models_dir, i=i))
             self.gans[i][1].save_weights('{models_dir}/gans/fadein_gan-{i}.h5'.format(models_dir=models_dir, i=i))
       
-    def generate_imgs(self, resolution, iteration, generator, n=4, fadein=False):
+    def generate_imgs(self, resolution, iteration, generator, n_voxels=1, n_slices=1, step=1, fadein=False):
         z = np.random.normal(0, 1, (n, self.z_dim))
 
         imgs_mean = np.random.random((n, 1))*2 - 1
@@ -183,17 +183,18 @@ class ModelHandler():
         gen_imgs = (gen_imgs+1)*127.5
         gen_imgs = gen_imgs.astype('uint8')
         
-        fn = 'norm'
+        fn = 'straight'
         if fadein:
             fn = 'fade'
             #prob = gen_imgs[0,:,:,0]
-        for i in range(0, n):
-            img = Image.fromarray(gen_imgs[i,:,:,0])
-            file_name = '{self.directory}/x{resolution}-{fn}-i{iteration}-n{i}'.format(self=self,
+        for i in range(0, n_voxels):
+            for j in range(0, n_slices):
+                img = Image.fromarray(gen_imgs[i,j*step,:,:,0])
+                file_name = '{self.directory}/x{resolution}-{fn}-i{iteration}-n{i}-slice{}'.format(self=self,
                                                                                                resolution=resolution,
                                                                                                fn=fn,
                                                                                                iteration=iteration,
-                                                                                               i=i)
+                                                                                               i=i, j=j*step)
             e = 0
             while os.path.exists('{file_name}-{e}.png'.format(file_name=file_name, e=e)):
                 e += 1
