@@ -340,4 +340,4 @@ ASALocalRun/
 healthchecksdb
 
 # Model training history
-History/
+History*/

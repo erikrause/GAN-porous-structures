@@ -1,9 +1,9 @@
 #################
 #FOR AMD DEVICES:
-#import os
-#import plaidml.keras
-#plaidml.keras.install_backend()
-#os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+import os
+import plaidml.keras
+plaidml.keras.install_backend()
+os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 
 #from modules.models import base_models
@@ -38,9 +38,10 @@ n_filters = {1: 64,
 
 filter_sizes = {1: (3,3),
                 2: (3,3),
-                3: (3,3)}        ## Протестировать фильтры 5х5
+                3: (5,5)}        ## Протестировать фильтры 5х5
 # Build a models (если модели и логи лежат в папке History, то будут загружены с диска):
-model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)
+#WEIGHTS_DIR = 'models-custom/'
+model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
 
 ######################################
 # MAIN LOOPv7
@@ -49,8 +50,10 @@ model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, 
 batch_size = 64
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
-n_fadein = np.array([0, 6000, 8000, 10000])
-n_straight = np.array([4500, 2500, 2500, 2500])
+#n_fadein = np.array([0, 3000, 8000, 10000])
+#n_straight = np.array([1500, 8500, 2500, 2500])
+n_fadein = np.array([0, 8000, 30000, 20000])
+n_straight = np.array([6000, 4000, 10000, 25000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 

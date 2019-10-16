@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import os.path
 
 class ModelHandler():
-    def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader):     #, discriminators, generators, gans):
+    def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader, weights_dir=''):     #, discriminators, generators, gans):
         self.directory = directory + 'History'
         # Models initialize:
         self.discriminators = []
@@ -46,9 +46,10 @@ class ModelHandler():
         self.data_loader = data_loader
         self.z_global = np.random.normal(0, 1, (1, self.z_dim))
         #
-        
 
-        if self.__check_log_files():
+        if weights_dir != '':
+            self.load_weights_from_dir(weights_dir)
+        elif self.__check_log_files():
             self.d_losses = self.load_logs('/d_losses.log')
             self.d_loss = self.d_losses[-1][0]
             self.g_losses = self.load_logs('/g_losses.log')
@@ -93,6 +94,13 @@ class ModelHandler():
             self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(models_dir, i))
             self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(models_dir, i))
 
+    def load_weights_from_dir(self, weights_dir):
+        for i in range(0, self.n_blocks):
+            self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(weights_dir, i))
+            self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(weights_dir, i))
+            self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(weights_dir, i))
+            self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(weights_dir, i))
+
     def build_models(self, start_shape:tuple, z_dim:int, n_filters, filter_sizes):
         base_discriminator = base_models.Discriminator(start_shape)
         self.discriminators.append([base_discriminator, base_discriminator])   
@@ -105,7 +113,7 @@ class ModelHandler():
             old_discriminator = self.discriminators[i - 1][0]
 	        # create new model for next resolution
             new_discriminators = pggan.add_discriminator_block(old_discriminator,
-                                                               n_filters = n_filters[i]//8,
+                                                               n_filters = n_filters[i]//2,#//8,
                                                                filter_size = filter_sizes[i])
             self.discriminators.append(new_discriminators)
             #/Block for discriminator
