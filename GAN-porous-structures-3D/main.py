@@ -17,12 +17,9 @@ from modules.preprocess import DataLoader
 from modules.ModelHandler import ModelHandler
 import numpy as np
 
-img_rows = 16
-img_cols = 16
-channels = 1
-
 # Start input image dimensions
-img_shape = (img_rows, img_cols, channels)
+channels = 1
+start_shape = (8, 8, channels)
 
 #DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
@@ -32,23 +29,24 @@ DIRECTORY = ''
 DATASET_DIR = DIRECTORY + 'datasets/beadpack/'
 # Initialize dataset:
 data_loader = DataLoader(DATASET_DIR+'/{}.png', (500,500,500))
-prob = data_loader.get_batch(64, (128,128,128), 8)
 
 # Size of the noise vector, used as input to the Generator
 z_dim = 100
 # Number of progressive resolution blocks:
-n_blocks = 4    
+n_blocks = 5    
 # Filters for each resolution block:
 n_filters = {1: 64,
              2: 32,
-             3: 16}    
+             3: 16,
+             4: 8}    
 
 filter_sizes = {1: (3,3),
                 2: (3,3),
-                3: (5,5)}        ## Протестировать фильтры 5х5
+                3: (5,5),
+                4: (7,7)}
 # Build a models (если модели и логи лежат в папке History, то будут загружены с диска):
 #WEIGHTS_DIR = 'models-custom/'
-model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
+model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
 
 ######################################
 # MAIN LOOP
@@ -59,8 +57,8 @@ sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 3000, 8000, 10000])
 #n_straight = np.array([1500, 8500, 2500, 2500])
-n_fadein = np.array([0, 8000, 30000, 20000])
-n_straight = np.array([6000, 4000, 10000, 25000])
+n_fadein = np.array([0, 5000, 8000, 20000, 30000])
+n_straight = np.array([8000, 5000, 10000, 10000, 25000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 
