@@ -60,7 +60,7 @@ class Discriminator(Model):
         #d = BatchNormalization()(d)
         #d = LeakyReLU(alpha=0.01)(d)
         #d = Dropout(rate = 0.2)(d)
-        #d = AveragePooling3D()(d)
+        d = AveragePooling3D()(d)
     
         d = Flatten()(d)
 
