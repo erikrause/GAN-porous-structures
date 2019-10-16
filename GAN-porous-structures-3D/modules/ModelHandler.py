@@ -191,7 +191,7 @@ class ModelHandler():
         for i in range(0, n_voxels):
             for j in range(0, n_slices):
                 img = Image.fromarray(gen_imgs[i,j*step,:,:,0])
-                file_name = '{self.directory}/x{resolution}-{fn}-i{iteration}-n{i}-slice{}'.format(self=self,
+                file_name = '{self.directory}/x{resolution}-{fn}-i{iteration}-n{i}-slice{j}'.format(self=self,
                                                                                                resolution=resolution,
                                                                                                fn=fn,
                                                                                                iteration=iteration,
