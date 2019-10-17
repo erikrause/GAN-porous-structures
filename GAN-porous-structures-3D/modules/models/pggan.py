@@ -44,18 +44,18 @@ def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, fi
     # New block/
     print(n_filters)
     
-    d = Conv3D(n_filters, kernel_size=filter_size, padding='same')(input_img)
+    d = Conv3D(n_filters, kernel_size=filter_size, strides=2, padding='same')(input_img)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
     d = Dropout(rate = 0.2)(d)
-    d = AveragePooling3D()(d)
+    #d = AveragePooling3D()(d)
   
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
-    d = Conv3D(n_filters_last, kernel_size=filter_size, padding='same')(d)
+    d = Conv3D(n_filters_last, kernel_size=filter_size, strides=2, padding='same')(d)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
     d = Dropout(rate = 0.2)(d)
-    d = AveragePooling3D()(d)   
+    #d = AveragePooling3D()(d)   
     
     block_new = d
     #/New block
@@ -109,11 +109,11 @@ def add_generator_block(old_model, n_filters=64, filter_size=3):
     block_end = old_model.layers[-3].output
     # upsample, and define new block
     upsampling = UpSampling3D()(block_end)
-    g = Conv3DTranspose(n_filters, kernel_size=filter_size, padding='same')(upsampling)
+    g = Conv3DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(upsampling)
     g = BatchNormalization()(g)
     g = LeakyReLU(alpha=0.01)(g)
     
-    g = Conv3DTranspose(n_filters, kernel_size=filter_size, padding='same')(g)
+    g = Conv3DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(g)
     g = BatchNormalization()(g)
     g = LeakyReLU(alpha=0.01)(g)
     # add new output layer
