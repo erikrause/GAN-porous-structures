@@ -209,10 +209,10 @@ class ModelHandler():
     
     # не используется
     def sample_next(self, resolution, iteration):   
-        self.gen_two(self.generators[1][0], '/next/x32-norm{}'.format(iteration))
-        self.gen_two(self.generators[1][1], '/next/x32-fade{}'.format(iteration))
-        self.gen_two(self.generators[2][0], '/next/x64-norm{}'.format(iteration))
-        self.gen_two(self.generators[2][1], '/next/x64-fade{}'.format(iteration))
+        self.gen_two(self.generators[1][0], '/next/x32-norm-i{}-m{}'.format(iteration, self.model_iteration))
+        self.gen_two(self.generators[1][1], '/next/x32-fade-i{}-m{}'.format(iteration, self.model_iteration))
+        self.gen_two(self.generators[2][0], '/next/x64-norm-i{}-m{}'.format(iteration, self.model_iteration))
+        self.gen_two(self.generators[2][1], '/next/x64-fade-i{}-m{}'.format(iteration, self.model_iteration))
         #self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
         #self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
     # не используется

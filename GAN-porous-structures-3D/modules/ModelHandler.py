@@ -204,10 +204,10 @@ class ModelHandler():
     
     # не используется
     def sample_next(self, resolution, iteration):   
-        self.gen_two(self.generators[2][0], '/next/x64-norm{}'.format(iteration))
-        self.gen_two(self.generators[2][1], '/next/x64-fade{}'.format(iteration))
-        self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
-        self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
+        self.gen_two(self.generators[2][0], '/next/x64-norm-i{}-m{}'.format(iteration, self.model_iteration))
+        self.gen_two(self.generators[2][1], '/next/x64-fade-i{}-m{}'.format(iteration, self.model_iteration))
+        self.gen_two(self.generators[3][0], '/next/x128-norm-i{}-m{}'.format(iteration, self.model_iteration))
+        self.gen_two(self.generators[3][1], '/next/x128-fade-i{}-m{}'.format(iteration, self.model_iteration))
     # не используется
     def gen_two(self, generator, filename):
         imgs_mean = np.array([[0.15]])
