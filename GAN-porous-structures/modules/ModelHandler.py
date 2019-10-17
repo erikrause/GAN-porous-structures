@@ -61,6 +61,13 @@ class ModelHandler():
             self.is_fadein = bool(self.d_losses[-1][-1])
             self.is_logs_loaded = True  # Не используется
             print('All logs loaded.')
+            print('Last checkpoint:')
+            print('iteration: ', self.iteration)
+            print('model_iteration: ', self.model_iteration)
+            print('is_fadein', int(self.is_fadein))
+            print('d_loss: ', self.d_loss)
+            print('g_loss: ', self.g_loss)
+            print('d_acc: ', self.d_acc)
             self.load_weights()
             print('All weights loaded.')
         else:
@@ -202,10 +209,12 @@ class ModelHandler():
     
     # не используется
     def sample_next(self, resolution, iteration):   
+        self.gen_two(self.generators[1][0], '/next/x32-norm{}'.format(iteration))
+        self.gen_two(self.generators[1][1], '/next/x32-fade{}'.format(iteration))
         self.gen_two(self.generators[2][0], '/next/x64-norm{}'.format(iteration))
         self.gen_two(self.generators[2][1], '/next/x64-fade{}'.format(iteration))
-        self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
-        self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
+        #self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
+        #self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
     # не используется
     def gen_two(self, generator, filename):
         imgs_mean = np.array([[0.15]])
@@ -307,7 +316,7 @@ class ModelHandler():
                 # Save losses and accuracies so they can be plotted after training
                 self.save_metrics()
                 self.generate_imgs(resolution, self.iteration, g_model, 1, self.is_fadein)
-                #self.sample_next(resolution, self.iteration + 1)       # В ОТДЕЛЬНЫЙ ПОТОК
+                self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
                 print("%d [D loss: %f, acc.: %.2f%%] [G loss: %f] [Time: %f.4]" %

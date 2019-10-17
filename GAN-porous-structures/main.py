@@ -1,9 +1,15 @@
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-amd', action='store_true', help='Enable PlaidML backend (for AMD devices)')
+args = parser.parse_args()
+
 #################
-#FOR AMD DEVICES:
-#import os
-#import plaidml.keras
-#plaidml.keras.install_backend()
-#os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+#ENABLE PLAIDML FOR AMD DEVICES:
+if args.amd:
+    import os
+    import plaidml.keras
+    plaidml.keras.install_backend()
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 #################
 
 #from modules.models import base_models
@@ -52,8 +58,8 @@ sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 3000, 8000, 10000])
 #n_straight = np.array([1500, 8500, 2500, 2500])
-n_fadein = np.array([0, 8000, 30000, 20000])
-n_straight = np.array([6000, 4000, 10000, 25000])
+n_fadein = np.array([0, 4000, 30000, 20000])
+n_straight = np.array([4000, 4000, 10000, 25000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 
