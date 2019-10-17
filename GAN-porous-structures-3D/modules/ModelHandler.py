@@ -238,9 +238,10 @@ class ModelHandler():
               n_resolution = (i+1)//2
 
           self.train_block(iterations, batch_size, sample_interval, n_resolution)
+          self.save_models()
           self.model_iteration += 1
           self.iteration = 0 
-          self.save_models()
+          
 
     def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
         # Get models for current resolution layer:
