@@ -117,7 +117,7 @@ def add_generator_block(old_model, n_filters=64, filter_size=3):
     g = BatchNormalization()(g)
     g = LeakyReLU(alpha=0.01)(g)
     # add new output layer
-    g = Conv3DTranspose(1, kernel_size=3, padding='same')(g)
+    g = Conv3DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
     out_image = Activation('tanh')(g)
     # define model
     straight_model = Model(old_model.inputs, out_image)

@@ -131,7 +131,7 @@ class ModelHandler():
             old_discriminator = self.discriminators[i - 1][0]
 	        # create new model for next resolution
             new_discriminators = pggan.add_discriminator_block(old_discriminator,
-                                                               n_filters = n_filters[i]//2,#//8,
+                                                               n_filters = n_filters[i]//4,#//8,
                                                                filter_size = filter_sizes[i])
             self.discriminators.append(new_discriminators)
             #/Block for discriminator
