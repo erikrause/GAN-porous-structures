@@ -26,11 +26,11 @@ class Generator(Model):
         g = Conv2DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
-        g = UpSampling2D()(g)
-    
+            
         g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
+        g = UpSampling2D()(g)
     
         g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
         img = Activation('tanh')(g)
@@ -57,7 +57,7 @@ class Discriminator(Model):
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha=0.01)(d)
         d = Dropout(rate = 0.2)(d)
-        d = AveragePooling2D()(d)
+        d = AveragePooling2D()(d)   # need to try without pooling and increase filters
 
         d = Conv2D(32, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
