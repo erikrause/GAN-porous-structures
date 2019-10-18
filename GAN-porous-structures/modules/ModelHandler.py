@@ -49,10 +49,9 @@ class ModelHandler():
 
         if weights_dir != '':
             self.load_weights_from_dir(weights_dir)
-            #debug:
-            self.iteration = 4000
-            self.model_iteration = 2
-            #########
+            self.iteration = input('print start iteration')
+            self.model_iteration = input('print start model_iteration')
+
         elif self.__check_log_files():
             self.d_losses = self.load_logs('/d_losses.log')
             self.d_loss = self.d_losses[-1][0]
@@ -64,20 +63,24 @@ class ModelHandler():
             self.model_iteration = self.d_losses[-1][-2]
             self.is_fadein = bool(self.d_losses[-1][-1])
             self.is_logs_loaded = True  # Не используется
+            #self.iteration = 0  #debug
+            #self.model_iteration = 2    #debug
             print('All logs loaded.')
-            print('Last checkpoint:')
-            print('iteration: ', self.iteration)
-            print('model_iteration: ', self.model_iteration)
-            print('is_fadein', int(self.is_fadein))
-            print('d_loss: ', self.d_loss)
-            print('g_loss: ', self.g_loss)
-            print('d_acc: ', self.d_acc)
             self.load_weights()
             print('All weights loaded.')
         else:
             tf.gfile.MkDir(self.directory)
             tf.gfile.MkDir('{self.directory}/next/'.format(self=self))
             print('Starting new logs.')
+
+        
+        print('Last checkpoint:')
+        print('iteration: ', self.iteration)
+        print('model_iteration: ', self.model_iteration)
+        print('is_fadein', int(self.is_fadein))
+        print('d_loss: ', self.d_loss)
+        print('g_loss: ', self.g_loss)
+        print('d_acc: ', self.d_acc)
 
     def __check_file(self, filename):
         return os.path.exists('{self.directory}/{filename}'
@@ -239,9 +242,9 @@ class ModelHandler():
         fig.savefig(self.directory + filename+' 2')
         plt.close(fig)
 
-    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int):
+    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=len(self.discriminators)*2-1):
   
-      while self.model_iteration//2 < len(self.discriminators):
+      while (self.model_iteration < len(self.discriminators)*2-1) or (self.model_iteration <= last_model):        # check end of loop
           i = self.model_iteration
           if (i % 2 == 0):    # if model is straight
               self.is_fadein = False
@@ -265,7 +268,7 @@ class ModelHandler():
 
         d_model = self.discriminators[n_resolution][int_fadein]
         g_model = self.generators[n_resolution][int_fadein]
-        gan_model = self.gans[n_resolution][int_fadein]      
+        gan_model = self.gans[n_resolution][int_fadein]   
         #self.iteration = 0     
         # Labels for real/fake imgs
         real = np.ones((batch_size, 1))
@@ -282,7 +285,8 @@ class ModelHandler():
 
             start_time = time.time()
             if self.is_fadein:
-                pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)    
+                pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
+                #pggan.update_fadein([g_model, d_model, gan_model], 1, 2)    
             # -------------------------
             #  Train the Discriminator
             # -------------------------

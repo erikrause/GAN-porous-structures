@@ -60,7 +60,7 @@ sample_interval = 100    # должно быть кратно итерациям
 n_fadein = np.array([0, 2000, 30000, 20000])
 n_straight = np.array([2000, 4000, 10000, 25000])
 
-model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
+model_handler.train(n_straight, n_fadein, batch_size, sample_interval, 2)
 
 #from keras.utils import plot_model
 #for i in range(0, 4):
