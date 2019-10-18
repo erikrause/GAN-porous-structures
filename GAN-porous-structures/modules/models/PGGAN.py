@@ -43,18 +43,18 @@ def add_discriminator_block(old_model: Model, n_input_layers=5, n_filters=64, fi
     # New block/
     print(n_filters)
     
-    d = Conv2D(n_filters, kernel_size=1, strides=2, padding='same')(input_img)
+    d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
     d = Dropout(rate = 0.2)(d)
-    #d = AveragePooling2D()(d)
+    d = AveragePooling2D()(d)
   
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
-    d = Conv2D(n_filters_last, kernel_size = filter_size, strides=2, padding='same')(d)
+    d = Conv2D(n_filters_last, kernel_size = filter_size, strides=1, padding='same')(d)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
     d = Dropout(rate = 0.2)(d)
-    #d = AveragePooling2D()(d)   
+    d = AveragePooling2D()(d)   
     
     block_new = d
     #/New block
