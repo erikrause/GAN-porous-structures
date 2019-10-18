@@ -51,15 +51,15 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         input_C = Input(shape=(1,), name='Input_C')
     
-        d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
-        d = LeakyReLU(alpha=0.01)(d) 
-        d = AveragePooling2D()(d)   # need to try without pooling and increase filters
+        #d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
+        #d = LeakyReLU(alpha=0.01)(d) 
+        #d = AveragePooling2D()(d)
     
-        d = Conv2D(32, kernel_size=3, strides = 1, padding='same')(d)
+        d = Conv2D(32, kernel_size=1, strides = 1, padding='same')(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha=0.01)(d)
         d = Dropout(rate = 0.2)(d)
-        
+        d = AveragePooling2D()(d)
 
         d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)

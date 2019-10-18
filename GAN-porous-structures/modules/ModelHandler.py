@@ -107,7 +107,8 @@ class ModelHandler():
             return __check_file('/discriminators/normal_discriminator-{}.h5'.format(models_count))
 
     def load_weights(self):
-        models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
+        #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
+        models_dir = '{self.directory}/models-weight/'.format(self=self)
         for i in range(0, self.n_blocks):
             self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(models_dir, i))
             self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(models_dir, i))
