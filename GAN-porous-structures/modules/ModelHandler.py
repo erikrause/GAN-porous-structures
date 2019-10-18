@@ -242,7 +242,7 @@ class ModelHandler():
         fig.savefig(self.directory + filename+' 2')
         plt.close(fig)
 
-    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=len(self.discriminators)*2-1):
+    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
   
       while (self.model_iteration < len(self.discriminators)*2-1) or (self.model_iteration <= last_model):        # check end of loop
           i = self.model_iteration
