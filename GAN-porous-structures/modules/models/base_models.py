@@ -32,6 +32,9 @@ class Generator(Model):
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
         
+        g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
+        g = BatchNormalization()(g)
+        g = LeakyReLU(alpha=0.01)(g)
     
         g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
         img = Activation('tanh')(g)
@@ -60,6 +63,11 @@ class Discriminator(Model):
         d = LeakyReLU(alpha=0.01)(d)
         d = Dropout(rate = 0.2)(d)
         d = AveragePooling2D()(d)
+
+        d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha=0.01)(d)
+        d = Dropout(rate = 0.2)(d)
 
         d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
