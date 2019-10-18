@@ -50,6 +50,9 @@ class ModelHandler():
 
         if weights_dir != '':
             self.load_weights_from_dir(weights_dir)
+            self.iteration = input('print start iteration')
+            self.model_iteration = input('print start model_iteration')
+
         elif self.__check_log_files():
             self.d_losses = self.load_logs('/d_losses.log')
             self.d_loss = self.d_losses[-1][0]
@@ -61,6 +64,8 @@ class ModelHandler():
             self.model_iteration = self.d_losses[-1][-2]
             self.is_fadein = bool(self.d_losses[-1][-1])
             self.is_logs_loaded = True  # Не используется
+            #self.iteration = 0  #debug
+            #self.model_iteration = 2    #debug
             print('All logs loaded.')
             self.load_weights()
             print('All weights loaded.')
@@ -68,6 +73,15 @@ class ModelHandler():
             tf.gfile.MkDir(self.directory)
             tf.gfile.MkDir('{self.directory}/next/'.format(self=self))
             print('Starting new logs.')
+
+        
+        print('Last checkpoint:')
+        print('iteration: ', self.iteration)
+        print('model_iteration: ', self.model_iteration)
+        print('is_fadein', int(self.is_fadein))
+        print('d_loss: ', self.d_loss)
+        print('g_loss: ', self.g_loss)
+        print('d_acc: ', self.d_acc)
 
     def __check_file(self, filename):
         return os.path.exists('{self.directory}/{filename}'
@@ -94,6 +108,8 @@ class ModelHandler():
             self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(models_dir, i))
             self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(models_dir, i))
             self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(models_dir, i))
+            self.gans[i][0].load_weights('{}/gans/normal_gan-{}.h5'.format(models_dir, i))
+            self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(models_dir, i))
 
     def load_weights_from_dir(self, weights_dir):
         for i in range(0, self.n_blocks):
@@ -101,6 +117,8 @@ class ModelHandler():
             self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(weights_dir, i))
             self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(weights_dir, i))
             self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(weights_dir, i))
+            self.gans[i][0].load_weights('{}/gans/normal_gan-{}.h5'.format(weights_dir, i))
+            self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))
 
     def build_models(self, start_shape:tuple, z_dim:int, n_filters, filter_sizes):
         base_discriminator = base_models.Discriminator(start_shape)
@@ -196,18 +214,24 @@ class ModelHandler():
                                                                                                fn=fn,
                                                                                                iteration=iteration,
                                                                                                i=i, j=j*step)
-                e = 0
-                while os.path.exists('{file_name}-{e}.png'.format(file_name=file_name, e=e)):
-                    e += 1
+            e = 0
+            while os.path.exists('{file_name}-{e}.png'.format(file_name=file_name, e=e)):
+                e += 1
             
-                img.save('{file_name}-{e}.png'.format(file_name=file_name, e=e))
+            img.save('{file_name}-{e}.png'.format(file_name=file_name, e=e))
     
-    # не используется
-    def sample_next(self, resolution, iteration):   
-        self.gen_two(self.generators[2][0], '/next/x64-norm-i{}-m{}'.format(iteration, self.model_iteration))
-        self.gen_two(self.generators[2][1], '/next/x64-fade-i{}-m{}'.format(iteration, self.model_iteration))
-        self.gen_two(self.generators[3][0], '/next/x128-norm-i{}-m{}'.format(iteration, self.model_iteration))
-        self.gen_two(self.generators[3][1], '/next/x128-fade-i{}-m{}'.format(iteration, self.model_iteration))
+    # не используется (debug)
+    def sample_next(self, resolution, iteration, description=''):
+        tf.gfile.MkDir('{self.directory}/next/x32-norm'.format(self=self))
+        self.gen_two(self.generators[1][0], '/next/x32-norm-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
+        tf.gfile.MkDir('{self.directory}/next/x32-fade'.format(self=self))
+        self.gen_two(self.generators[1][1], '/next/x32-fade-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
+        tf.gfile.MkDir('{self.directory}/next/x64-norm'.format(self=self))
+        self.gen_two(self.generators[2][0], '/next/x64-norm-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
+        tf.gfile.MkDir('{self.directory}/next/x32-fade'.format(self=self))
+        self.gen_two(self.generators[2][1], '/next/x64-fade-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
+        #self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
+        #self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
     # не используется
     def gen_two(self, generator, filename):
         imgs_mean = np.array([[0.15]])
@@ -221,12 +245,12 @@ class ModelHandler():
         gen_img = generator.predict([self.z_global, imgs_mean])
         fig=plt.figure()
         plt.imshow(gen_img[0,:,:,0], cmap='gray')
-        fig.savefig(self.directory + filename+'2')
+        fig.savefig(self.directory + filename+' 2')
         plt.close(fig)
 
-    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int):
+    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
   
-      while self.model_iteration//2 < len(self.discriminators):
+      while (self.model_iteration < len(self.discriminators)*2-1) or (self.model_iteration <= last_model):        # check end of loop
           i = self.model_iteration
           if (i % 2 == 0):    # if model is straight
               self.is_fadein = False
@@ -265,11 +289,14 @@ class ModelHandler():
         resolution = self.start_shape[0]*2**(n_resolution)
         print(resolution, resolution)
 
+        self.sample_next(resolution, self.iteration, 'start')  
+
         while self.iteration < iterations:
 
             start_time = time.time()
             if self.is_fadein:
-                pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)    
+                pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
+                #pggan.update_fadein([g_model, d_model, gan_model], 1, 2)    
             # -------------------------
             #  Train the Discriminator
             # -------------------------
@@ -312,8 +339,8 @@ class ModelHandler():
             if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
                 self.save_metrics()
-                self.generate_imgs(resolution, self.iteration, g_model, 1, 4, 2, fadein=self.is_fadein)
-                #self.sample_next(resolution, self.iteration + 1)       # В ОТДЕЛЬНЫЙ ПОТОК
+                self.generate_imgs(resolution, self.iteration, g_model, 1, self.is_fadein)
+                #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
                 print("%d [D loss: %f, acc.: %.2f%%] [G loss: %f] [Time: %f.4]" %

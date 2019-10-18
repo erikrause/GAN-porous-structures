@@ -7,12 +7,15 @@ from keras import backend
 import time
 from PIL import Image
 import matplotlib.pyplot as plt
+from keras.utils import plot_model
 
 import os.path
 
 class ModelHandler():
     def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader, weights_dir=''):     #, discriminators, generators, gans):
+        directory = directory + 'output/'
         self.directory = directory + 'History'
+        self.samples_dir = directory + 'samples'
         # Models initialize:
         self.discriminators = []
         self.generators = [] 
@@ -69,8 +72,11 @@ class ModelHandler():
             self.load_weights()
             print('All weights loaded.')
         else:
+            tf.gfile.MkDir(directory)
             tf.gfile.MkDir(self.directory)
-            tf.gfile.MkDir('{self.directory}/next/'.format(self=self))
+            tf.gfile.MkDir(self.samples_dir)
+            tf.gfile.MkDir('{self.samples_dir}/next/'.format(self=self))
+            tf.gfile.MkDir('{self.directory}/models_diagrams/'.format(self=self))
             print('Starting new logs.')
 
         
@@ -174,8 +180,10 @@ class ModelHandler():
             pickle.dump(logs, file)
     
     def save_models(self):
-        tf.gfile.MkDir('{self.directory}/models-{self.model_iteration}'.format(self=self))
-        models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
+        #tf.gfile.MkDir('{self.directory}/models-{self.model_iteration}'.format(self=self))
+        #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
+        tf.gfile.MkDir('{self.directory}/models-weight'.format(self=self))
+        models_dir = '{self.directory}/models-weight/'.format(self=self)
         i = 0
         for i in range(0, len(self.generators)):
             tf.gfile.MkDir('{models_dir}/generators'.format(models_dir=models_dir))
@@ -207,7 +215,7 @@ class ModelHandler():
             #prob = gen_imgs[0,:,:,0]
         for i in range(0, n):
             img = Image.fromarray(gen_imgs[i,:,:,0])
-            file_name = '{self.directory}/x{resolution}-{fn}-i{iteration}-n{i}'.format(self=self,
+            file_name = '{self.samples_dir}/x{resolution}-{fn}-i{iteration}-n{i}'.format(self=self,
                                                                                                resolution=resolution,
                                                                                                fn=fn,
                                                                                                iteration=iteration,
@@ -220,9 +228,13 @@ class ModelHandler():
     
     # не используется
     def sample_next(self, resolution, iteration, description=''):   
+        tf.gfile.MkDir('{self.samples_dir}/next/x32-norm'.format(self=self))
         self.gen_two(self.generators[1][0], '/next/x32-norm-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
+        tf.gfile.MkDir('{self.samples_dir}/next/x32-fade'.format(self=self))
         self.gen_two(self.generators[1][1], '/next/x32-fade-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
+        tf.gfile.MkDir('{self.samples_dir}/next/x64-norm'.format(self=self))
         self.gen_two(self.generators[2][0], '/next/x64-norm-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
+        tf.gfile.MkDir('{self.samples_dir}/next/x32-fade'.format(self=self))
         self.gen_two(self.generators[2][1], '/next/x64-fade-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
         #self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
         #self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
@@ -232,14 +244,14 @@ class ModelHandler():
         gen_img = generator.predict([self.z_global, imgs_mean])
         fig=plt.figure()
         plt.imshow(gen_img[0,:,:,0], cmap='gray')
-        fig.savefig(self.directory + filename)
+        fig.savefig(self.samples_dir + filename)
         plt.close(fig)
 
         imgs_mean = np.array([[0.65]])
         gen_img = generator.predict([self.z_global, imgs_mean])
         fig=plt.figure()
         plt.imshow(gen_img[0,:,:,0], cmap='gray')
-        fig.savefig(self.directory + filename+' 2')
+        fig.savefig(self.samples_dir + filename+' 2')
         plt.close(fig)
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
@@ -258,8 +270,7 @@ class ModelHandler():
           self.train_block(iterations, batch_size, sample_interval, n_resolution)
           self.model_iteration += 1
           self.iteration = 0 
-          self.save_models()
-
+          
     def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
         # Get models for current resolution layer:
         int_fadein = int(self.is_fadein)
@@ -269,6 +280,11 @@ class ModelHandler():
         d_model = self.discriminators[n_resolution][int_fadein]
         g_model = self.generators[n_resolution][int_fadein]
         gan_model = self.gans[n_resolution][int_fadein]   
+
+        d_model.summary()
+        plot_model(d_model, to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}'.format(self=self))
+        g_model.summary()
+        plot_model(g_model, to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}'.format(self=self))
         #self.iteration = 0     
         # Labels for real/fake imgs
         real = np.ones((batch_size, 1))
@@ -329,6 +345,7 @@ class ModelHandler():
             if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
                 self.save_metrics()
+                self.save_models()
                 self.generate_imgs(resolution, self.iteration, g_model, 1, self.is_fadein)
                 self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 

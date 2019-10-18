@@ -23,14 +23,14 @@ class Generator(Model):
         g = Dense(128 * 4 * 4 * 4)(combined)
         g = Reshape((4, 4, 4, 128))(g)
   
-        g = Conv3DTranspose(128, kernel_size=3, strides=2, padding='same')(g)
+        g = Conv3DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
-        #g = UpSampling3D()(g)
-    
+            
         g = Conv3DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
+        g = UpSampling3D()(g)
     
         g = Conv3DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
         img = Activation('tanh')(g)
@@ -50,17 +50,20 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         input_C = Input(shape=(1,), name='Input_C')
     
-        d = Conv3D(16, kernel_size=1, strides=2, padding='same', name='concat_layer')(input_img)
-        d = BatchNormalization()(d)
+        d = Conv3D(32, kernel_size=1, strides=1, padding='same', name='concat_layer')(input_img)
         d = LeakyReLU(alpha=0.01)(d) 
-        d = Dropout(rate = 0.2)(d)
-        #d = AveragePooling3D()(d)
     
-        d = Conv3D(32, kernel_size=3, strides=2, padding='same')(d)
+        d = Conv3D(32, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha=0.01)(d)
         d = Dropout(rate = 0.2)(d)
-        #d = AveragePooling3D()(d)
+        d = AveragePooling3D()(d)   # need to try without pooling and increase filters
+
+        d = Conv3D(32, kernel_size=3, strides=1, padding='same')(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha=0.01)(d)
+        d = Dropout(rate = 0.2)(d)
+        d = AveragePooling3D()(d)
     
         d = Flatten()(d)
 
