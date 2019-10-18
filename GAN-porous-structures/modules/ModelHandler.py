@@ -282,9 +282,9 @@ class ModelHandler():
         gan_model = self.gans[n_resolution][int_fadein]   
 
         d_model.summary()
-        plot_model(d_model, to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}'.format(self=self))
+        plot_model(d_model, to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self))
         g_model.summary()
-        plot_model(g_model, to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}'.format(self=self))
+        plot_model(g_model, to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self))
         #self.iteration = 0     
         # Labels for real/fake imgs
         real = np.ones((batch_size, 1))

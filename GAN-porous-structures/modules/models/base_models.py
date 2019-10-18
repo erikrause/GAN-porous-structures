@@ -26,11 +26,12 @@ class Generator(Model):
         g = Conv2DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
+        g = UpSampling2D()(g)
             
         g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha=0.01)(g)
-        g = UpSampling2D()(g)
+        
     
         g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
         img = Activation('tanh')(g)
