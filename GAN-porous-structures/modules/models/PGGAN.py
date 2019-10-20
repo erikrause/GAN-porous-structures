@@ -114,7 +114,7 @@ def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, fi
                       optimizer=Adam(),
                       metrics=['accuracy'])
 
-    return [straight_model, fadein_model]
+    return [fadein_model, straight_model]
 
 def add_generator_block(old_model, n_filters=64, filter_size=3):
     # get the end of the last block
@@ -143,19 +143,13 @@ def add_generator_block(old_model, n_filters=64, filter_size=3):
     merged = WeightedSum()([out_image2, out_image])
     # define model
     fadein_model = Model(old_model.inputs, merged)
-    return [straight_model, fadein_model]
+    return [fadein_model, straight_model]
 
 def build_composite(discriminators, generators):
-	model_list = list()
-	# create composite models
-	for i in range(len(discriminators)):
-		g_models, d_models = generators[i], discriminators[i]
-		# straight-through model
-		straight_model = base_models.GAN(g_models[0], d_models[0])
-		# fade-in model
-		fadein_model = base_models.GAN(g_models[1], d_models[1])
-		# store
-		model_list.append([straight_model, fadein_model])
-	return model_list
+    fadein_model = base_models.GAN(generators[0], discriminators[0])
+    straight_model = base_models.GAN(generators[1], discriminators[1])
+    
+    return [fadein_model, straight_model]
+
 
 

@@ -17,6 +17,7 @@ class ModelHandler():
         self.directory = directory + 'History'
         self.samples_dir = directory + 'samples'
         # Models initialize:
+        self.models = dict()
         self.discriminators = []
         self.generators = [] 
         self.gans = []
@@ -126,11 +127,11 @@ class ModelHandler():
         # NEED TO TEST:
         models_dir = '{self.directory}/models/'.format(self=self)
         for i in range(0, self.n_blocks):
-            self.discriminators.append(load('{}/discriminators/normal_discriminator-{}.h5'.format(models_dir, i)),
+            self.discriminators.extend(load('{}/discriminators/normal_discriminator-{}.h5'.format(models_dir, i)),
                                        load('{}/discriminators/fadein_discriminator-{}.h5'.format(models_dir, i)))
-            self.generators.append(load('{}/generators/normal_generator-{}.h5'.format(models_dir, i)),
+            self.generators.extend(load('{}/generators/normal_generator-{}.h5'.format(models_dir, i)),
                                    load('{}/generators/fadein_generator-{}.h5'.format(models_dir, i)))
-            self.gans.append(load('{}/gans/normal_gan-{}.h5'.format(models_dir, i)),
+            self.gans.extend(load('{}/gans/normal_gan-{}.h5'.format(models_dir, i)),
                             load('{}/gans/fadein_gan-{}.h5'.format(models_dir, i)))
         ###########
 
@@ -144,31 +145,52 @@ class ModelHandler():
             self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))
 
     def build_models(self, start_shape:tuple, z_dim:int, n_filters, filter_sizes):
+        for model in (base_models.Discriminator, base_models.Generator):
+
         base_discriminator = base_models.Discriminator(start_shape)
-        self.discriminators.append([base_discriminator, base_discriminator])   
+        #self.discriminators.append(base_discriminator)   
+        self.models.update({base_models.Discriminator : {start_shape : base_discriminator}})
 
         base_generator = base_models.Generator(z_dim)
-        self.generators.append([base_generator, base_generator])
+        #self.generators.append(base_generator)
+        self.models.update({base_models.Generator : {start_shape : base_generator}})
+
+        base_gan = base_models.GAN(base_generator, base_discriminator)
+
+        models = [base_models.Discriminator, base_models.Generator, base_models.GAN]
+
+        dis_last = base_discriminator
+        gen_last = base_generator
+        gan_last = base_gan
+        last_shape = start_shape
 
         for i in range(1, self.n_blocks):
-            #Block for discriminator/
-            old_discriminator = self.discriminators[i - 1][0]
-	        # create new model for next resolution
-            new_discriminators = pggan.add_discriminator_block(old_discriminator,
+	        # Add upsample block/
+            new_discriminators = pggan.add_discriminator_block(dis_last,
                                                                n_filters = n_filters[i]//4,#//8,
                                                                filter_size = filter_sizes[i])
-            self.discriminators.append(new_discriminators)
-            #/Block for discriminator
+            self.models.update({base_models.Discriminator : {last_shape : new_discriminators}})
 
-            #Block for generator/
-            old_generator = self.generators[i - 1][0]
             new_generators = pggan.add_generator_block(old_generator,
                                                        n_filters = n_filters[i],
                                                        filter_size = filter_sizes[i])
-            self.generators.append(new_generators)
-            #/Block for generator
+            self.models.update({base_models.Generator : {last_shape : new_generators}})
+            #/ Add upsample block
 
-        self.gans = pggan.build_composite(self.discriminators, self.generators)
+            #dis_last = self.discriminators[-1]
+            #gen_last = self.generators[-1]
+            dis_last = self.models[base_models.Discriminator][last_shape]
+            gen_last = self.models[base_models.Generator][last_shape]
+            last_shape = upscale(last_shape)
+
+        self.gans = pggan.build_composite(self.discriminators, self.generators) #?
+
+    def upscale(self, shape:tuple, dims=2):
+        new_shape = list(shape)
+        for i in range(dims):
+            new_shape[i] = new_shape[i]*2
+
+        return tuple(new_shape)
 
     #def get_generator(self):
         #return self.generators[current]
