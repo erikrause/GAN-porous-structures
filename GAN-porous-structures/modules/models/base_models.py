@@ -78,10 +78,10 @@ class Discriminator(Model):
         d = Dropout(rate = self.droprate)(d)
         d = AveragePooling2D()(d)
 
-        #d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
-        #d = BatchNormalization()(d)
-        #d = LeakyReLU(alpha = self.alpha)(d)
-        #d = Dropout(rate = self.droprate)(d)
+        d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
 
         d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
