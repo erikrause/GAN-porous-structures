@@ -9,8 +9,9 @@ from keras import backend
 import tensorflow as tf
 
 class Generator(Model):
-    def __init__(self, inputs, outputs=None):
+    def __init__(self, inputs, outputs = None, alpha = 0.2):
         if outputs == None:
+            self.alpha = alpha
             model = self.__build(inputs)
             Model.__init__(self, model.inputs, model.outputs)
         elif outputs != None:
@@ -28,20 +29,20 @@ class Generator(Model):
   
         g = Conv2DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
-        g = LeakyReLU(alpha=0.01)(g)
+        g = LeakyReLU(alpha = self.alpha)(g)
 
         g = Conv2DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
-        g = LeakyReLU(alpha=0.01)(g)
+        g = LeakyReLU(alpha = self.alpha)(g)
         g = UpSampling2D()(g)
             
         g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
-        g = LeakyReLU(alpha=0.01)(g)
+        g = LeakyReLU(alpha = self.alpha)(g)
         
         g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
-        g = LeakyReLU(alpha=0.01)(g)
+        g = LeakyReLU(alpha = self.alpha)(g)
     
         g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
         img = Activation('tanh')(g)
@@ -49,8 +50,10 @@ class Generator(Model):
         return Model(inputs = [input_Z, input_C], outputs = img)
 
 class Discriminator(Model):
-    def __init__(self, img_shape=None, inputs = None, outputs=None):
+    def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = self.droprate):
         if outputs == None:
+            self.alpha = 0.2
+            self.droprate = droprate
             model = self.__build(img_shape)
             Model.__init__(self, model.inputs, model.outputs)
         elif outputs != None:
@@ -66,24 +69,24 @@ class Discriminator(Model):
         input_C = Input(shape=(1,), name='Input_C')
     
         #d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
-        #d = LeakyReLU(alpha=0.01)(d) 
+        #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
         d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
         d = BatchNormalization()(d)
-        d = LeakyReLU(alpha=0.01)(d)
-        d = Dropout(rate = 0.2)(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
         d = AveragePooling2D()(d)
 
         #d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
         #d = BatchNormalization()(d)
-        #d = LeakyReLU(alpha=0.01)(d)
-        #d = Dropout(rate = 0.2)(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
+        #d = Dropout(rate = self.droprate)(d)
 
         d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
-        d = LeakyReLU(alpha=0.01)(d)
-        d = Dropout(rate = 0.2)(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
         d = AveragePooling2D()(d)
     
         d = Flatten()(d)
@@ -91,9 +94,9 @@ class Discriminator(Model):
         combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
         d = Dense(128)(combined)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha=0.01)(d)
-        d = Dropout(rate = 0.2)(d)
+        #d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
     
         d = Dense(1, activation='sigmoid')(d)
 

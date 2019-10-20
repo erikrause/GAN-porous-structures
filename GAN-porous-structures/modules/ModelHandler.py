@@ -79,7 +79,7 @@ class ModelHandler():
             if self.is_fadein:
                 fadein_models = []
                 for model in [base_models.Discriminator, base_models.Generator]:
-                    fadein_models.append(self.models[model][self.current_shape][self.is_fadein])
+                    fadein_models.append(self.models[model][self.current_shape][not self.is_fadein])
                     pggan.update_fadein(fadein_models, 0, 0, alpha = self.parameters['alpha'])
             #################
             #self.iteration = 0  #debug
