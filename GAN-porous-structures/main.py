@@ -17,12 +17,9 @@ from modules.preprocess import DataLoader
 from modules.ModelHandler import ModelHandler
 import numpy as np
 
-img_rows = 16
-img_cols = 16
-channels = 1
-
 # Start input image dimensions
-img_shape = (img_rows, img_cols, channels)
+channels = 1
+start_shape = (16, 16, channels)
 
 #DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
@@ -47,7 +44,7 @@ filter_sizes = {1: (3,3),
                 3: (5,5)}        ## Протестировать фильтры 5х5
 # Build a models (если модели и логи лежат в папке History, то будут загружены с диска):
 WEIGHTS_DIR = 'models-custom/'
-model_handler = ModelHandler(DIRECTORY, img_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
+model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
 ######################################
 # MAIN LOOPv7
 ######################################
@@ -57,8 +54,8 @@ sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 3000, 8000, 10000])
 #n_straight = np.array([1500, 8500, 2500, 2500])
-n_fadein = np.array([0, 8000, 22000, 15000])
-n_straight = np.array([4000, 4000, 5000, 25000])
+n_fadein = np.array([0, 4000, 10000, 15000])
+n_straight = np.array([4000, 5000, 5000, 25000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 

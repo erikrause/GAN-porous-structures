@@ -2,7 +2,7 @@ from keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
                           Embedding, Flatten, Input, Multiply, Reshape, Dropout,
                           Concatenate, Layer, Add)
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import Conv3D, Conv3DTranspose, MaxPooling3D, UpSampling3D, AveragePooling3D
+from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
 from keras.models import Model
 from keras.optimizers import Adam
 from keras import backend
@@ -24,40 +24,64 @@ class WeightedSum(Add):
 		output = ((1.0 - self.alpha) * inputs[0]) + (self.alpha * inputs[1])
 		return output
 
-def update_fadein(models, step, n_steps):
-    # calculate current alpha (linear from 0 to 1)
-    alpha = step / float(n_steps - 1)
+def update_fadein(models, step, n_steps, alpha = -1):
     # update the alpha for each model
     for model in models:
         for layer in model.layers:
             if isinstance(layer, WeightedSum):
+                # calculate current alpha (linear from 0 to 1)
+                if alpha == -1:
+                    current_alpha = backend.get_value(layer.alpha)
+                    remaining_alpha = 1 - current_alpha
+                    remaining_steps = n_steps - step
+                    if remaining_steps == 0:
+                        alpha = 1.0
+                    else:
+                        #alpha = step / float(n_steps - 1)
+                        dalpha = remaining_alpha / remaining_steps
+                        alpha = current_alpha + dalpha
                 backend.set_value(layer.alpha, alpha)
+    return alpha
 
-def add_discriminator_block(old_model: Model, n_input_layers=4, n_filters=64, filter_size=3):
+def add_block(old_model, n_input_layers=6, n_filters=64, filter_size=3):
+    models = []
+    if isinstance(old_model, base_models.Discriminator):
+        models = __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
+    elif isinstance(old_model, base_models.Generator):
+        models = __add_generator_block(old_model, n_filters, filter_size)
+    elif isinstance(old_model, list):
+        discriminators = old_model[0]
+        generators = old_model[1]
+        models = __add_gan_block(discriminators, generators)
+
+    return models
+
+def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size):
     old_input_shape = list(old_model.input_shape)
     input_img_shape = (old_input_shape[0][-2]*2, 
-                   old_input_shape[0][-2]*2,
-                   old_input_shape[0][-2]*2,
+                   old_input_shape[0][-2]*2, 
                    old_input_shape[0][-1])
     input_img = Input(shape=input_img_shape)
     
     # New block/
     print(n_filters)
     
-    #d = Conv3D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
+    #d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
     #d = LeakyReLU(alpha=0.01)(d)
+    #d = AveragePooling2D()(d)   
 
-    d = Conv3D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
-    #d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.01)(d)
-    #d = Dropout(rate = 0.2)(d)
-  
-    n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
-    d = Conv3D(n_filters_last, kernel_size=filter_size, strides=1, padding='same')(d)
+    d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.01)(d)
     d = Dropout(rate = 0.2)(d)
-    d = AveragePooling3D()(d)   
+    d = AveragePooling2D()(d)   
+
+    n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
+    d = Conv2D(n_filters_last, kernel_size = filter_size, strides=1, padding='same')(d)
+    d = BatchNormalization()(d)
+    d = LeakyReLU(alpha=0.01)(d)
+    d = Dropout(rate = 0.2)(d)
+    d = AveragePooling2D()(d)   
     
     block_new = d
     #/New block
@@ -73,13 +97,15 @@ def add_discriminator_block(old_model: Model, n_input_layers=4, n_filters=64, fi
 
         else:
             d = current_layer(d)
-        
-    straight_model = Model([input_img, input_C], d) #base_models.Discriminator
-    straight_model.compile(loss='binary_crossentropy',
-                      optimizer=Adam(),
-                      metrics=['accuracy'])
 
-    downsample = AveragePooling3D()(input_img)
+        prob = current_layer.get_weights()
+        
+    straight_model = base_models.Discriminator(inputs=[input_img, input_C], outputs=d) #base_models.Discriminator
+    #straight_model.compile(loss='binary_crossentropy',
+    #                  optimizer=Adam(),
+    #                  metrics=['accuracy'])
+
+    downsample = AveragePooling2D()(input_img)
     
     block_old = downsample
     for i in range(1, n_input_layers):
@@ -99,30 +125,30 @@ def add_discriminator_block(old_model: Model, n_input_layers=4, n_filters=64, fi
         else:
             d = current_layer(d)
         
-    fadein_model = Model([input_img, input_C], d)
-    fadein_model.compile(loss='binary_crossentropy',
-                      optimizer=Adam(),
-                      metrics=['accuracy'])
+    fadein_model = base_models.Discriminator(inputs=[input_img, input_C], outputs=d)
+    #fadein_model.compile(loss='binary_crossentropy',
+    #                  optimizer=Adam(),
+    #                  metrics=['accuracy'])
 
     return [straight_model, fadein_model]
 
-def add_generator_block(old_model, n_filters=64, filter_size=3):
+def __add_generator_block(old_model, n_filters=64, filter_size=3):
     # get the end of the last block
     block_end = old_model.layers[-3].output
     # upsample, and define new block
-    upsampling = UpSampling3D()(block_end)
-    g = Conv3DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(upsampling)
+    upsampling = UpSampling2D()(block_end)
+    g = Conv2DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(upsampling)
     g = BatchNormalization()(g)
     g = LeakyReLU(alpha=0.01)(g)
     
-    g = Conv3DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(g)
+    g = Conv2DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(g)
     g = BatchNormalization()(g)
     g = LeakyReLU(alpha=0.01)(g)
     # add new output layer
-    g = Conv3DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
+    g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
     out_image = Activation('tanh')(g)
     # define model
-    straight_model = Model(old_model.inputs, out_image)
+    straight_model = base_models.Generator(inputs=old_model.inputs, outputs=out_image)
     
     # get the output layer from old model
     out_old = old_model.layers[-2]#[-1]
@@ -132,20 +158,14 @@ def add_generator_block(old_model, n_filters=64, filter_size=3):
     # define new output image as the weighted sum of the old and new models
     merged = WeightedSum()([out_image2, out_image])
     # define model
-    fadein_model = Model(old_model.inputs, merged)
+    fadein_model = base_models.Generator(inputs=old_model.inputs, outputs=merged)
     return [straight_model, fadein_model]
 
-def build_composite(discriminators, generators):
-	model_list = list()
-	# create composite models
-	for i in range(len(discriminators)):
-		g_models, d_models = generators[i], discriminators[i]
-		# straight-through model
-		straight_model = base_models.GAN(g_models[0], d_models[0])
-		# fade-in model
-		fadein_model = base_models.GAN(g_models[1], d_models[1])
-		# store
-		model_list.append([straight_model, fadein_model])
-	return model_list
+def __add_gan_block(discriminators, generators):
+    fadein_model = base_models.GAN(generators[0], discriminators[0])
+    straight_model = base_models.GAN(generators[1], discriminators[1])
+    
+    return [straight_model, fadein_model]
+
 
 
