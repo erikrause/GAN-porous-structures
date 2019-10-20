@@ -134,7 +134,6 @@ class ModelHandler():
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
             for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-                tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
                 shape = self.upscale(self.start_shape, k = i)
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
@@ -149,7 +148,6 @@ class ModelHandler():
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
             for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-                tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
                     resolution_model[n].load('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
@@ -342,10 +340,11 @@ class ModelHandler():
               n_resolution = (i+1)//2
           
           #self.current_shape = self.upscale(start_shape, k=n_resolution)
-          self.train_block(iterations, batch_size, sample_interval, n_resolution)
-          self.model_iteration += 1
           self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
           self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
+          self.train_block(iterations, batch_size, sample_interval, n_resolution)
+
+          self.model_iteration += 1   
           self.iteration = 0 
           
     def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
@@ -427,7 +426,7 @@ class ModelHandler():
             if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
                 self.save_metrics()
-                self.save_models()
+                self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
                 self.generate_imgs(resolution, self.iteration, g_model, 1, self.is_fadein)
                 #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК

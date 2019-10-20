@@ -23,7 +23,7 @@ class Generator(Model):
         input_C = Input(shape=(1,))
 
         combined = Concatenate()([input_Z, input_C])
-    
+        
         g = Dense(128 * 8 * 8)(combined)
         g = Reshape((8, 8, 128))(g)
   
