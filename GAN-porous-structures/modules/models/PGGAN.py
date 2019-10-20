@@ -97,6 +97,8 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
 
         else:
             d = current_layer(d)
+
+        prob = current_layer.get_weights()
         
     straight_model = base_models.Discriminator(inputs=[input_img, input_C], outputs=d) #base_models.Discriminator
     #straight_model.compile(loss='binary_crossentropy',
@@ -128,7 +130,7 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
     #                  optimizer=Adam(),
     #                  metrics=['accuracy'])
 
-    return [fadein_model, straight_model]
+    return [straight_model, fadein_model]
 
 def __add_generator_block(old_model, n_filters=64, filter_size=3):
     # get the end of the last block
@@ -157,13 +159,13 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     merged = WeightedSum()([out_image2, out_image])
     # define model
     fadein_model = base_models.Generator(inputs=old_model.inputs, outputs=merged)
-    return [fadein_model, straight_model]
+    return [straight_model, fadein_model]
 
 def __add_gan_block(discriminators, generators):
     fadein_model = base_models.GAN(generators[0], discriminators[0])
     straight_model = base_models.GAN(generators[1], discriminators[1])
     
-    return [fadein_model, straight_model]
+    return [straight_model, fadein_model]
 
 
 

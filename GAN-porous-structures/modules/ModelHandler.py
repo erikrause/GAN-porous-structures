@@ -79,7 +79,7 @@ class ModelHandler():
             if self.is_fadein:
                 fadein_models = []
                 for model in [base_models.Discriminator, base_models.Generator]:
-                    fadein_models.append(self.models[model][self.current_shape][not self.is_fadein])
+                    fadein_models.append(self.models[model][self.current_shape][self.is_fadein])
                     pggan.update_fadein(fadein_models, 0, 0, alpha = self.parameters['alpha'])
             #################
             #self.iteration = 0  #debug
@@ -172,8 +172,8 @@ class ModelHandler():
         models = [base_models.Discriminator, base_models.Generator, base_models.GAN]
         for model in models:
             if model == base_models.GAN:
-                dis_last = self.models[base_models.Discriminator][start_shape][-1]
-                gen_last = self.models[base_models.Generator][start_shape][-1]
+                dis_last = self.models[base_models.Discriminator][start_shape][0]
+                gen_last = self.models[base_models.Generator][start_shape][0]
                 base_model = model(gen_last, dis_last)
             elif model == base_models.Generator:
                 base_model = model(z_dim)
@@ -188,7 +188,7 @@ class ModelHandler():
 	        # Add upsample block/
             new_shape = self.upscale(last_shape)
             for model in models:
-                last_model = self.models[model][last_shape][-1]
+                last_model = self.models[model][last_shape][0]
                 
                 filters = n_filters[i]
                 if model  == base_models.GAN:
@@ -356,7 +356,7 @@ class ModelHandler():
 
         models = []
         for model in [base_models.Discriminator, base_models.Generator,base_models.GAN]:
-            models.append(self.models[model][self.current_shape][int_straight])
+            models.append(self.models[model][self.current_shape][self.is_fadein])
         d_model = models[0]
         g_model = models[1]
         gan_model = models[2]
@@ -366,6 +366,7 @@ class ModelHandler():
         g_model.summary()
         plot_model(g_model, to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self))
 
+        alpha = -1
         # Labels for real/fake imgs
         real = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))

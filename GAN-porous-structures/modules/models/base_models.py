@@ -1,7 +1,7 @@
 from keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
                           Embedding, Flatten, Input, Multiply, Reshape, Dropout,
                           Concatenate, Layer, Add)
-from keras.layers.advanced_activations import LeakyReLU
+from keras.layers.advanced_activations import LeakyReLU, ReLU
 from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
 from keras.models import Model
 from keras.optimizers import Adam
@@ -29,20 +29,20 @@ class Generator(Model):
   
         g = Conv2DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
-        g = LeakyReLU(alpha = self.alpha)(g)
+        g = ReLU()(g)
 
         g = Conv2DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
-        g = LeakyReLU(alpha = self.alpha)(g)
+        g = ReLU()(g)
         g = UpSampling2D()(g)
             
         g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
-        g = LeakyReLU(alpha = self.alpha)(g)
+        g = ReLU()(g)
         
         g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
-        g = LeakyReLU(alpha = self.alpha)(g)
+        g = ReLU()(g)
     
         g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
         img = Activation('tanh')(g)
@@ -50,7 +50,7 @@ class Generator(Model):
         return Model(inputs = [input_Z, input_C], outputs = img)
 
 class Discriminator(Model):
-    def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = self.droprate):
+    def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
         if outputs == None:
             self.alpha = 0.2
             self.droprate = droprate
