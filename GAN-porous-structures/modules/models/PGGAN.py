@@ -40,6 +40,7 @@ def update_fadein(models, step, n_steps):
                     dalpha = remaining_alpha / remaining_steps
                     alpha = current_alpha + dalpha
                 backend.set_value(layer.alpha, alpha)
+    return alpha
 
 def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, filter_size=3):
     old_input_shape = list(old_model.input_shape)

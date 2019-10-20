@@ -42,6 +42,7 @@ class ModelHandler():
         self.model_iteration = 0
         self.is_fadein = False
         self.is_logs_loaded = False
+        self.parameters = dict()
         #
         # Train params:
         #self.batch_size = 64
@@ -56,16 +57,20 @@ class ModelHandler():
             self.model_iteration = input('print start model_iteration')
 
         elif self.__check_log_files():
-            self.d_losses = self.load_logs('/d_losses.log')
+            self.d_losses = self.load_from_file('/d_losses.log')
             self.d_loss = self.d_losses[-1][0]
-            self.g_losses = self.load_logs('/g_losses.log')
+            self.g_losses = self.load_from_file('/g_losses.log')
             self.g_loss = self.g_losses[-1][0]
-            self.d_acces = self.load_logs('/d_acces.log')
+            self.d_acces = self.load_from_file('/d_acces.log')
             self.d_acc = self.d_acces[-1][0]
             self.iteration = self.d_losses[-1][-3]
             self.model_iteration = self.d_losses[-1][-2]
             self.is_fadein = bool(self.d_losses[-1][-1])
             self.is_logs_loaded = True  # Не используется
+            self.parameters = self.load_from_file('/parameters')
+            # Initialise alpha from last checkpoint:
+            pggan.update_fadein(self.discriminators[model_iteration][is_fadein])
+            #################
             #self.iteration = 0  #debug
             #self.model_iteration = 2    #debug
             print('All logs loaded.')
@@ -169,16 +174,18 @@ class ModelHandler():
         #return self.generators[current]
         
     def save_metrics(self):#, d_loss, g_loss, d_acc):
-
+        # NEED TO CLEAR CODE:
         self.__update_metric(self.d_loss, self.d_losses)
         self.__update_metric(self.g_loss, self.g_losses)
         self.__update_metric(self.d_acc, self.d_acces)
 
-        self.__save_logs(self.d_losses, '/d_losses.log')
-        self.__save_logs(self.g_losses, '/g_losses.log')
-        self.__save_logs(self.d_acces, '/d_acces.log')
+        self.__to_file(self.d_losses, '/d_losses.log')
+        self.__to_file(self.g_losses, '/g_losses.log')
+        self.__to_file(self.d_acces, '/d_acces.log')
+        self.__to_file(self.parameters, '/parameters')
+        ######################
 
-    def load_logs(self, filename):
+    def load_from_file(self, filename):
         logs = []
         with open('{self.directory}/{filename}'.format(self=self, filename=filename), 'rb') as file:
             logs = pickle.load(file)
@@ -188,7 +195,7 @@ class ModelHandler():
     def __update_metric(self, metric, logs):
         logs.append([metric, self.iteration, self.model_iteration, int(self.is_fadein)])
 
-    def __save_logs(self, logs, filename):
+    def __to_file(self, logs, filename):
         with open('{self.directory}/{filename}'.format(self=self, filename=filename), 'wb') as file:
             pickle.dump(logs, file)
     
@@ -333,7 +340,8 @@ class ModelHandler():
 
             start_time = time.time()
             if self.is_fadein:
-                pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
+                alpha = pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
+                self.parameters.update({'alpha':alpha})
                 #pggan.update_fadein([g_model, d_model, gan_model], 1, 2)    
             # -------------------------
             #  Train the Discriminator
