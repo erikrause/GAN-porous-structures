@@ -51,7 +51,7 @@ class ModelHandler():
         #
 
         if weights_dir != '':
-            self.load_weights_from_dir(weights_dir)
+            self.load_models_weights_from_dir(weights_dir)
             self.iteration = input('print start iteration')
             self.model_iteration = input('print start model_iteration')
 
@@ -69,7 +69,7 @@ class ModelHandler():
             #self.iteration = 0  #debug
             #self.model_iteration = 2    #debug
             print('All logs loaded.')
-            self.load_weights()
+            self.load_models_weights()
             print('All weights loaded.')
         else:
             tf.gfile.MkDir(directory)
@@ -106,7 +106,7 @@ class ModelHandler():
             models_count = len(discriminators)
             return __check_file('/discriminators/normal_discriminator-{}.h5'.format(models_count))
 
-    def load_weights(self):
+    def load_models_weights(self):
         #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
         models_dir = '{self.directory}/models-weight/'.format(self=self)
         for i in range(0, self.n_blocks):
@@ -117,7 +117,19 @@ class ModelHandler():
             self.gans[i][0].load_weights('{}/gans/normal_gan-{}.h5'.format(models_dir, i))
             self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(models_dir, i))
 
-    def load_weights_from_dir(self, weights_dir):
+    def load_models(self):
+        # NEED TO TEST:
+        models_dir = '{self.directory}/models/'.format(self=self)
+        for i in range(0, self.n_blocks):
+            self.discriminators.append(load('{}/discriminators/normal_discriminator-{}.h5'.format(models_dir, i)),
+                                       load('{}/discriminators/fadein_discriminator-{}.h5'.format(models_dir, i)))
+            self.generators.append(load('{}/generators/normal_generator-{}.h5'.format(models_dir, i)),
+                                   load('{}/generators/fadein_generator-{}.h5'.format(models_dir, i)))
+            self.gans.append(load('{}/gans/normal_gan-{}.h5'.format(models_dir, i)),
+                            load('{}/gans/fadein_gan-{}.h5'.format(models_dir, i)))
+        ###########
+
+    def load_models_weights_from_dir(self, weights_dir):
         for i in range(0, self.n_blocks):
             self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(weights_dir, i))
             self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(weights_dir, i))
@@ -180,10 +192,10 @@ class ModelHandler():
         with open('{self.directory}/{filename}'.format(self=self, filename=filename), 'wb') as file:
             pickle.dump(logs, file)
     
-    def save_models(self):
+    def save_models_weights(self):
         #tf.gfile.MkDir('{self.directory}/models-{self.model_iteration}'.format(self=self))
         #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
-        tf.gfile.MkDir('{self.directory}/models-weight'.format(self=self))
+        tf.gfile.MkDir('{self.directory}/models-weight/'.format(self=self))
         models_dir = '{self.directory}/models-weight/'.format(self=self)
         i = 0
         for i in range(0, len(self.generators)):
@@ -200,6 +212,25 @@ class ModelHandler():
             tf.gfile.MkDir('{models_dir}/gans'.format(models_dir=models_dir))
             self.gans[i][0].save_weights('{models_dir}/gans/normal_gan-{i}.h5'.format(models_dir=models_dir, i=i))
             self.gans[i][1].save_weights('{models_dir}/gans/fadein_gan-{i}.h5'.format(models_dir=models_dir, i=i))
+
+    def save_models(self):
+        tf.gfile.MkDir('{self.directory}/models/'.format(self=self))
+        models_dir = '{self.directory}/models/'.format(self=self)
+        i = 0
+        for i in range(0, len(self.generators)):
+            tf.gfile.MkDir('{models_dir}/generators'.format(models_dir=models_dir))
+            self.generators[i][0].save('{models_dir}/generators/normal_generator-{i}.h5'.format(models_dir=models_dir, i=i))
+            self.generators[i][1].save('{models_dir}/generators/fadein_generator-{i}.h5'.format(models_dir=models_dir, i=i))
+      
+        for i in range(0, len(self.discriminators)):
+            tf.gfile.MkDir('{models_dir}/discriminators'.format(models_dir=models_dir))
+            self.discriminators[i][0].save('{models_dir}/discriminators/normal_discriminator-{i}.h5'.format(models_dir=models_dir, i=i))
+            self.discriminators[i][1].save('{models_dir}/discriminators/fadein_discriminator-{i}.h5'.format(models_dir=models_dir, i=i))
+      
+        for i in range(0, len(self.gans)):
+            tf.gfile.MkDir('{models_dir}/gans'.format(models_dir=models_dir))
+            self.gans[i][0].save('{models_dir}/gans/normal_gan-{i}.h5'.format(models_dir=models_dir, i=i))
+            self.gans[i][1].save('{models_dir}/gans/fadein_gan-{i}.h5'.format(models_dir=models_dir, i=i))
       
     def generate_imgs(self, resolution, iteration, generator, n=4, fadein=False):
         z = np.random.normal(0, 1, (n, self.z_dim))
