@@ -57,8 +57,8 @@ sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 3000, 8000, 10000])
 #n_straight = np.array([1500, 8500, 2500, 2500])
-n_fadein = np.array([0, 8000, 30000, 20000])
-n_straight = np.array([4000, 4000, 10000, 25000])
+n_fadein = np.array([0, 8000, 22000, 15000])
+n_straight = np.array([4000, 4000, 5000, 25000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 

@@ -25,12 +25,20 @@ class WeightedSum(Add):
 		return output
 
 def update_fadein(models, step, n_steps):
-    # calculate current alpha (linear from 0 to 1)
-    alpha = step / float(n_steps - 1)
     # update the alpha for each model
     for model in models:
         for layer in model.layers:
             if isinstance(layer, WeightedSum):
+                # calculate current alpha (linear from 0 to 1)
+                current_alpha = backend.get_value(layer.alpha)
+                remaining_alpha = 1 - current_alpha
+                remaining_steps = n_steps - step
+                if remaining_steps == 0:
+                    alpha = 1.0
+                else:
+                    #alpha = step / float(n_steps - 1)
+                    dalpha = remaining_alpha / remaining_steps
+                    alpha = current_alpha + dalpha
                 backend.set_value(layer.alpha, alpha)
 
 def add_discriminator_block(old_model: Model, n_input_layers=6, n_filters=64, filter_size=3):
