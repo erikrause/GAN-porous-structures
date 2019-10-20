@@ -1,7 +1,7 @@
 from keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
                           Embedding, Flatten, Input, Multiply, Reshape, Dropout,
                           Concatenate, Layer, Add)
-from keras.layers.advanced_activations import LeakyReLU
+from keras.layers.advanced_activations import LeakyReLU, ReLU
 from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
 from keras.models import Model
 from keras.optimizers import Adam
@@ -72,14 +72,14 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
 
     d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
     d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.01)(d)
+    d = LeakyReLU(alpha=0.02)(d)
     d = Dropout(rate = 0.2)(d)
     d = AveragePooling2D()(d)   
 
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
     d = Conv2D(n_filters_last, kernel_size = filter_size, strides=1, padding='same')(d)
     d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.01)(d)
+    d = LeakyReLU(alpha=0.02)(d)
     d = Dropout(rate = 0.2)(d)
     d = AveragePooling2D()(d)   
     
@@ -139,11 +139,11 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     upsampling = UpSampling2D()(block_end)
     g = Conv2DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(upsampling)
     g = BatchNormalization()(g)
-    g = LeakyReLU(alpha=0.01)(g)
+    g = ReLU()(g)
     
     g = Conv2DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(g)
     g = BatchNormalization()(g)
-    g = LeakyReLU(alpha=0.01)(g)
+    g = ReLU()(g)
     # add new output layer
     g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
     out_image = Activation('tanh')(g)

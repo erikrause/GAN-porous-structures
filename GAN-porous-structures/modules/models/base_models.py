@@ -9,9 +9,8 @@ from keras import backend
 import tensorflow as tf
 
 class Generator(Model):
-    def __init__(self, inputs, outputs = None, alpha = 0.2):
+    def __init__(self, inputs, outputs = None):
         if outputs == None:
-            self.alpha = alpha
             model = self.__build(inputs)
             Model.__init__(self, model.inputs, model.outputs)
         elif outputs != None:
