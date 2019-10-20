@@ -9,9 +9,12 @@ from keras import backend
 import tensorflow as tf
 
 class Generator(Model):
-    def __init__(self, z_dim):
-        model = self.__build(z_dim)
-        Model.__init__(self, model.inputs, model.outputs)
+    def __init__(self, inputs, outputs=None):
+        if outputs == None:
+            model = self.__build(inputs)
+            Model.__init__(self, model.inputs, model.outputs)
+        elif outputs != None:
+            Model.__init__(self, inputs, outputs)
 
     def __build(self, z_dim):
   
@@ -46,9 +49,13 @@ class Generator(Model):
         return Model(inputs = [input_Z, input_C], outputs = img)
 
 class Discriminator(Model):
-    def __init__(self, img_shape:tuple):
-        model = self.__build(img_shape)
-        Model.__init__(self, model.inputs, model.outputs)
+    def __init__(self, img_shape=None, inputs = None, outputs=None):
+        if outputs == None:
+            model = self.__build(img_shape)
+            Model.__init__(self, model.inputs, model.outputs)
+        elif outputs != None:
+            Model.__init__(self, inputs, outputs)
+
         self.compile(loss='binary_crossentropy',
                       optimizer=Adam(),
                       metrics=['accuracy'])
