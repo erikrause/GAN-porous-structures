@@ -26,12 +26,14 @@ start_shape = (16, 16, channels)
 
 # directory_name/ (слэш только в конце названия папки!).
 DIRECTORY = ''
-DATASET_DIR = DIRECTORY + 'datasets/beadpack/'
+#DATASET_DIR = DIRECTORY + 'datasets/berea/{}.png'
+DATASET_DIR = DIRECTORY + 'datasets/berea/berea.tif'
 # Initialize dataset:
-data_loader = DataLoader(DATASET_DIR+'/{}.png', 500, (500, 500))
+data_loader = DataLoader(DATASET_DIR, (400, 400, 400), is_tif=True, dims=2)
+data_loader.get_batch(64,(128,128),4)
 
 # Size of the noise vector, used as input to the Generator
-z_dim = 100
+z_dim = 128
 # Number of progressive resolution blocks:
 n_blocks = 4    
 # Filters for each resolution block:
