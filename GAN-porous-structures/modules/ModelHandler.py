@@ -328,24 +328,25 @@ class ModelHandler():
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
   
-      while (self.model_iteration < len(self.discriminators)*2-1) or (self.model_iteration <= last_model):        # check end of loop
-          i = self.model_iteration
-          if (i % 2 == 0):    # if model is straight
-              self.is_fadein = False
-              iterations = n_straight[i//2]
-              n_resolution = i//2
-          else:
+        while (self.model_iteration < len(self.discriminators)*2-1) or (self.model_iteration <= last_model):        # check end of loop
+            i = self.model_iteration
+            if (i % 2 == 0):    # if model is straight
+                self.is_fadein = False
+                iterations = n_straight[i//2]
+                n_resolution = i//2
+            else:
               self.is_fadein = True
               iterations = n_fadein[(i+1)//2]
               n_resolution = (i+1)//2
           
-          #self.current_shape = self.upscale(start_shape, k=n_resolution)
-          self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
-          self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
-          self.train_block(iterations, batch_size, sample_interval, n_resolution)
+            #self.current_shape = self.upscale(start_shape, k=n_resolution)
+            self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
+            self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
+          
+            self.train_block(iterations, batch_size, sample_interval, n_resolution)
 
-          self.model_iteration += 1   
-          self.iteration = 0 
+            self.model_iteration += 1   
+            self.iteration = 0 
           
     def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
         # Get models for current resolution layer:
@@ -448,3 +449,5 @@ class ModelHandler():
         for layer in model.layers:
             if isinstance(layer, pggan.WeightedSum):
                 print(backend.get_value(layer.alpha))
+
+    #def get_models(self, resolution)
