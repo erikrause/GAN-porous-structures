@@ -2,7 +2,7 @@ from keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
                           Embedding, Flatten, Input, Multiply, Reshape, Dropout,
                           Concatenate, Layer, Add)
 from keras.layers.advanced_activations import LeakyReLU, ReLU
-from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
+from keras.layers.convolutional import Conv3D, Conv3DTranspose, MaxPooling3D, UpSampling3D, AveragePooling3D
 from keras.models import Model
 from keras.optimizers import Adam
 from keras import backend
@@ -26,26 +26,21 @@ class Generator(Model):
         g = Dense(256 * 2 * 2)(combined)
         g = Reshape((2, 2, 256))(g)
   
-        g = Conv2DTranspose(256, kernel_size=3, strides=2, padding='same')(g)
+        g = Conv3DTranspose(256, kernel_size=3, strides=2, padding='same')(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        #g = UpSampling2D()(g)
+        #g = UpSampling3D()(g)
 
-        g = Conv2DTranspose(128, kernel_size=3, strides=2, padding='same')(g)
+        g = Conv3DTranspose(128, kernel_size=3, strides=2, padding='same')(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        #g = UpSampling2D()(g)
-            
-        g = Conv2DTranspose(64, kernel_size=3, strides=2, padding='same')(g)
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
-        #g = UpSampling2D()(g)
+        #g = UpSampling3D()(g)
         
-        #g = Conv2DTranspose(64, kernel_size=3, strides=2, padding='same')(g)
+        #g = Conv3DTranspose(64, kernel_size=3, strides=2, padding='same')(g)
         #g = BatchNormalization()(g)
         #g = ReLU()(g)
     
-        g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
+        g = Conv3DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
         img = Activation('tanh')(g)
 
         return Model(inputs = [input_Z, input_C], outputs = img)
@@ -69,32 +64,32 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         input_C = Input(shape=(1,), name='Input_C')
     
-        #d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
+        #d = Conv3D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
         #d = LeakyReLU(alpha = self.alpha)(d) 
-        #d = AveragePooling2D()(d)
+        #d = AveragePooling3D()(d)
     
-        d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
+        d = Conv3D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
-        d = AveragePooling2D()(d)
+        d = AveragePooling3D()(d)
 
-        #d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
+        #d = Conv3D(64, kernel_size=3, strides = 1, padding='same')(d)
         #d = BatchNormalization()(d)
         #d = LeakyReLU(alpha = self.alpha)(d)
         #d = Dropout(rate = self.droprate)(d)
 
-        d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
+        d = Conv3D(64, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
-        d = AveragePooling2D()(d)
+        d = AveragePooling3D()(d)
 
-        d = Conv2D(128, kernel_size=3, strides = 1, padding='same')(d)
+        d = Conv3D(128, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
-        d = AveragePooling2D()(d)
+        d = AveragePooling3D()(d)
     
         d = Flatten()(d)
 

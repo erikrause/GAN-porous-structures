@@ -272,26 +272,40 @@ class ModelHandler():
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
       
-    def generate_imgs(self, resolution, iteration, generator, n=4, fadein=False):
-        z = np.random.normal(0, 1, (n, self.z_dim))
+    def generate_imgs(self, resolution, iteration, generator, axis, n_imgs=4, step=4, fadein=False):
+        
 
-        imgs_mean = np.random.random((n, 1))*2 - 1
+        step = resolution//step
+
+        if axis == 3:
+            z = np.random.normal(0, 1, (1, self.z_dim))
+            imgs_mean = np.random.random((1, 1))*2 - 1
+            gen_imgs = generator.predict([z, imgs_mean])
+        else:
+            z = np.random.normal(0, 1, (n_imgs, self.z_dim))
+            imgs_mean = np.random.random((n_imgs, 1))*2 - 1
         gen_imgs = generator.predict([z, imgs_mean])
-
         gen_imgs = (gen_imgs+1)*127.5
         gen_imgs = gen_imgs.astype('uint8')
         
         fn = 'norm'
         if fadein:
             fn = 'fade'
-            #prob = gen_imgs[0,:,:,0]
-        for i in range(0, n):
-            img = Image.fromarray(gen_imgs[i,:,:,0])
+
+        for i in range(0, n_imgs):
+            if axis == 3:
+                img = Image.fromarray(gen_imgs[0,i*step,:,:,0])
+            elif axis == 2:
+                img = Image.fromarray(gen_imgs[i,:,:,0])
+            
             file_name = '{self.samples_dir}/x{resolution}-{fn}-i{iteration}-n{i}'.format(self=self,
                                                                                                resolution=resolution,
                                                                                                fn=fn,
                                                                                                iteration=iteration,
                                                                                                i=i)
+
+            
+
             e = 0
             while os.path.exists('{file_name}-{e}.png'.format(file_name=file_name, e=e)):
                 e += 1
@@ -376,7 +390,8 @@ class ModelHandler():
         #resolution = self.start_shape[0]*2**(n_resolution)
         print(self.current_shape)
         resolution = self.current_shape[0]
-        self.generate_imgs(resolution, self.iteration, g_model, 1, self.is_fadein)
+        axis = len(self.current_shape) - 1
+        self.generate_imgs(resolution, self.iteration, g_model, axis, n_imgs = 1, fadein=self.is_fadein)
         #self.sample_next(self.current_shape[0], self.iteration, 'start')  
 
         while self.iteration < iterations:
@@ -397,7 +412,7 @@ class ModelHandler():
             downscale = 128 // resolution
             # Get a random batch of real images
             imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
-            imgs_mean = np.mean(imgs, axis=(1,2))
+            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
         
             # Generate a batch of fake images
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
@@ -429,7 +444,7 @@ class ModelHandler():
                 self.save_metrics()
                 self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
-                self.generate_imgs(resolution, self.iteration, g_model, 1, self.is_fadein)
+                self.generate_imgs(resolution, self.iteration, g_model, axis, 1, fadein=self.is_fadein)
                 #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
@@ -443,6 +458,13 @@ class ModelHandler():
 
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
+
+    def __get_axis(self, shape):
+        if len(shape) - 1 == 3:
+            axis = (1,2,3)
+        elif len(shape) - 1 == 2:
+            axis = (1,2)
+        return axis
 
     #for debug:
     def __get_alpha(self, model):
