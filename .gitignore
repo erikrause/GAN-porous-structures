@@ -342,3 +342,4 @@ healthchecksdb
 # Model training history
 History*/
 output*/
+*.tif*
