@@ -58,9 +58,9 @@ def add_block(old_model, n_input_layers=6, n_filters=64, filter_size=3):
 
 def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size):
     old_input_shape = list(old_model.input_shape)
-    input_img_shape = (old_input_shape[-2]*2, 
-                   old_input_shape[-2]*2, 
-                   old_input_shape[-1])
+    input_img_shape = (old_input_shape[0][-2]*2, 
+                   old_input_shape[0][-2]*2, 
+                   old_input_shape[0][-1])
     input_img = Input(shape=input_img_shape)
     
     # New block/
@@ -100,7 +100,7 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
 
         prob = current_layer.get_weights()
         
-    straight_model = base_models.Discriminator(inputs=input_img, outputs=d) #base_models.Discriminator
+    straight_model = base_models.Discriminator(inputs=[input_img, input_C], outputs=d) #base_models.Discriminator
     #straight_model.compile(loss='binary_crossentropy',
     #                  optimizer=Adam(),
     #                  metrics=['accuracy'])
@@ -125,7 +125,7 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
         else:
             d = current_layer(d)
         
-    fadein_model = base_models.Discriminator(inputs=input_img, outputs=d)
+    fadein_model = base_models.Discriminator(inputs=[input_img, input_C], outputs=d)
     #fadein_model.compile(loss='binary_crossentropy',
     #                  optimizer=Adam(),
     #                  metrics=['accuracy'])

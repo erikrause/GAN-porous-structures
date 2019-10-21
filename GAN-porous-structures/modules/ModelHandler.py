@@ -276,7 +276,7 @@ class ModelHandler():
         z = np.random.normal(0, 1, (n, self.z_dim))
 
         imgs_mean = np.random.random((n, 1))*2 - 1
-        gen_imgs = generator.predict(z)
+        gen_imgs = generator.predict([z, imgs_mean])
 
         gen_imgs = (gen_imgs+1)*127.5
         gen_imgs = gen_imgs.astype('uint8')
@@ -400,11 +400,11 @@ class ModelHandler():
         
             # Generate a batch of fake images
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
-            gen_imgs = g_model.predict(z)
+            gen_imgs = g_model.predict([z, imgs_mean])
 
             # Train Discriminator
-            d_loss_real = d_model.train_on_batch(imgs, real)
-            d_loss_fake = d_model.train_on_batch(gen_imgs, fake)
+            d_loss_real = d_model.train_on_batch([imgs, imgs_mean], real)
+            d_loss_fake = d_model.train_on_batch([gen_imgs, imgs_mean], fake)
             self.d_loss, self.d_acc = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
@@ -416,7 +416,7 @@ class ModelHandler():
             #gen_imgs = generator.predict([z,imgs_mean])
 
             # Train Generator
-            self.g_loss = gan_model.train_on_batch(z, real)
+            self.g_loss = gan_model.train_on_batch([z, imgs_mean], real)
             
             end_time = time.time()
             iteration_time = end_time - start_time
