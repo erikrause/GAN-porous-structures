@@ -23,22 +23,23 @@ class Generator(Model):
 
         combined = Concatenate()([input_Z, input_C])
         
-        g = Dense(128 * 4 * 4)(combined)
-        g = Reshape((4, 4, 128))(g)
+        g = Dense(256 * 2 * 2)(combined)
+        g = Reshape((2, 2, 256))(g)
   
-        g = Conv2DTranspose(256, kernel_size=3, strides=1, padding='same')(g)
+        g = Conv2DTranspose(256, kernel_size=3, strides=2, padding='same')(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        g = UpSampling2D()(g)
+        #g = UpSampling2D()(g)
 
-        g = Conv2DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
+        g = Conv2DTranspose(128, kernel_size=3, strides=2, padding='same')(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        g = UpSampling2D()(g)
+        #g = UpSampling2D()(g)
             
-        g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
+        g = Conv2DTranspose(64, kernel_size=3, strides=2, padding='same')(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
+        #g = UpSampling2D()(g)
         
         g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
@@ -84,6 +85,12 @@ class Discriminator(Model):
         #d = Dropout(rate = self.droprate)(d)
 
         d = Conv2D(64, kernel_size=3, strides = 1, padding='same')(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
+        d = AveragePooling2D()(d)
+
+        d = Conv2D(128, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)

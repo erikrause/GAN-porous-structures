@@ -162,8 +162,8 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     return [straight_model, fadein_model]
 
 def __add_gan_block(discriminators, generators):
-    fadein_model = base_models.GAN(generators[0], discriminators[0])
-    straight_model = base_models.GAN(generators[1], discriminators[1])
+    fadein_model = base_models.GAN(generators[1], discriminators[1])
+    straight_model = base_models.GAN(generators[0], discriminators[0])
     
     return [straight_model, fadein_model]
 
