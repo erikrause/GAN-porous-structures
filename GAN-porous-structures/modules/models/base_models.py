@@ -21,9 +21,9 @@ class Generator(Model):
         input_Z = Input(shape=(z_dim,))
         input_C = Input(shape=(1,))
 
-        combined = Concatenate()([input_Z, input_C])
+        #combined = Concatenate()([input_Z, input_C])
         
-        g = Dense(128 * 4 * 4)(combined)
+        g = Dense(128 * 4 * 4)(input_Z)
         g = Reshape((4, 4, 128))(g)
   
         g = Conv2DTranspose(256, kernel_size=3, strides=1, padding='same')(g)
@@ -47,7 +47,8 @@ class Generator(Model):
         g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
         img = Activation('tanh')(g)
 
-        return Model(inputs = [input_Z, input_C], outputs = img)
+        #return Model(inputs = [input_Z, input_C], outputs = img)
+        return Model(inputs = input_Z, outputs = img)
 
 class Discriminator(Model):
     def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
@@ -66,7 +67,7 @@ class Discriminator(Model):
     def __build(self, img_shape:tuple):
 
         input_img = Input(shape = img_shape)
-        input_C = Input(shape=(1,), name='Input_C')
+        #input_C = Input(shape=(1,), name='Input_C')
     
         #d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
         #d = LeakyReLU(alpha = self.alpha)(d) 
@@ -91,9 +92,9 @@ class Discriminator(Model):
     
         d = Flatten()(d)
 
-        combined = Concatenate(name='Concat_input_C')([d, input_C])    
+        #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(128)(combined)
+        d = Dense(128)(d)
         #d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
@@ -101,7 +102,7 @@ class Discriminator(Model):
         d = Dense(1, activation='sigmoid')(d)
 
 
-        model = Model(inputs=[input_img, input_C], outputs=d)
+        model = Model(inputs=input_img, outputs=d)
     
         return model
 
@@ -121,7 +122,7 @@ class GAN(Model):
         img = generator(generator.inputs)#generator([input_Z, input_C])
     
         # Combined Generator -> Discriminator model
-        classification = discriminator([img, generator.inputs[1]])
+        classification = discriminator(img)
     
         model = Model(generator.inputs, classification)
 

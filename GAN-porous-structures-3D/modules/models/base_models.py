@@ -26,9 +26,10 @@ class Generator(Model):
         g = Dense(128 * 4 * 4 * 4)(combined)
         g = Reshape((4, 4, 4, 128))(g)
   
-        g = Conv3DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
+        g = Conv3DTranspose(256, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
+        g = UpSampling3D()(g)
 
         g = Conv3DTranspose(128, kernel_size=3, strides=1, padding='same')(g)
         g = BatchNormalization()(g)
@@ -77,10 +78,10 @@ class Discriminator(Model):
         d = Dropout(rate = self.droprate)(d)
         d = AveragePooling3D()(d)
 
-        d = Conv3D(64, kernel_size=3, strides = 1, padding='same')(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Conv3D(64, kernel_size=3, strides = 1, padding='same')(d)
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
+        #d = Dropout(rate = self.droprate)(d)
 
         d = Conv3D(64, kernel_size=3, strides = 1, padding='same')(d)
         d = BatchNormalization()(d)
