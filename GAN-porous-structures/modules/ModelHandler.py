@@ -395,7 +395,7 @@ class ModelHandler():
             
             downscale = 128 // resolution
             # Get a random batch of real images
-            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:2], downscale)
+            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
             imgs_mean = np.mean(imgs, axis=(1,2))
         
             # Generate a batch of fake images
