@@ -26,9 +26,9 @@ start_shape = (16, 16, channels)
 
 # directory_name/ (слэш только в конце названия папки!).
 DIRECTORY = ''
-DATASET_DIR = DIRECTORY + 'datasets/berea/'
+DATASET_DIR = DIRECTORY + 'datasets/beadpack/'
 # Initialize dataset:
-data_loader = DataLoader(DATASET_DIR+'/{}.png', 400, (400, 400))
+data_loader = DataLoader(DATASET_DIR+'/{}.png', 500, (500, 500))
 
 # Size of the noise vector, used as input to the Generator
 z_dim = 100
