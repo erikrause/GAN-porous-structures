@@ -29,6 +29,9 @@
     <Compile Include="modules\ModelHandler.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="modules\models\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="modules\preprocess.py">
       <SubType>Code</SubType>
     </Compile>
@@ -38,6 +41,7 @@
     <Compile Include="modules\models\base_models.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="modules\__init__.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="modules\" />
