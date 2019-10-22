@@ -8,7 +8,7 @@ from keras.optimizers import Adam
 from keras import backend
 import tensorflow as tf
 
-from modules.models import base_models
+from modules.models import base_models3D as base_models
 
 class WeightedSum(Add):
 	# init with default value
@@ -142,9 +142,6 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     g = BatchNormalization()(g)
     g = ReLU()(g)
     
-    g = Conv3DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(g)
-    g = BatchNormalization()(g)
-    g = ReLU()(g)
     # add new output layer
     g = Conv3DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
     out_image = Activation('tanh')(g)

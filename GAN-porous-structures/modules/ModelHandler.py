@@ -1,4 +1,5 @@
-from modules.models import pggan, base_models
+from modules.models import pggan3D as pggan
+from modules.models import base_models3D as base_models
 from modules.preprocess import DataLoader
 import pickle
 import tensorflow as tf
@@ -26,9 +27,15 @@ class ModelHandler():
         self.start_shape = start_shape
         self.current_shape = start_shape
         upscale = 2**(n_blocks-1)
-        self.end_shape = (start_shape[0]*upscale,
-                          start_shape[1]*upscale,
-                          start_shape[2])
+        #self.end_shape = (start_shape[0]*upscale,
+        #                  start_shape[1]*upscale,
+        #                  start_shape[2])
+        self.end_shape = start_shape[:-1]
+        self.end_shape = tuple(x*upscale for x in self.end_shape)
+        self.end_shape = list(self.end_shape)
+        self.end_shape.append(1)
+        self.end_shape = tuple(self.end_shape)
+
         self.z_dim = z_dim
         self.build_models(start_shape, z_dim, n_filters, filter_sizes)
         #
