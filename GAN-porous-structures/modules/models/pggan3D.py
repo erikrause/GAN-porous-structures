@@ -8,7 +8,7 @@ from keras.optimizers import Adam
 from keras import backend
 import tensorflow as tf
 
-from modules.models import base_models
+from modules.models import base_models3D as base_models
 
 class WeightedSum(Add):
 	# init with default value
