@@ -1,6 +1,6 @@
-from modules.models import base_models, pggan
-#from modules.models import pggan3D as pggan
-#from modules.models import base_models3D as base_models
+#from modules.models import base_models, pggan
+from modules.models import pggan3D as pggan
+from modules.models import base_models3D as base_models
 from modules.preprocess import DataLoader
 import pickle
 import tensorflow as tf

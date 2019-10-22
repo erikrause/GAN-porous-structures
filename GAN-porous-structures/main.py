@@ -19,7 +19,7 @@ import numpy as np
 
 # Start input image dimensions
 channels = 1
-start_shape = (16, 16, channels)
+start_shape = (8,8,8 channels)
 
 #DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
@@ -29,22 +29,22 @@ DIRECTORY = ''
 #DATASET_DIR = DIRECTORY + 'datasets/berea/{}.png'
 DATASET_DIR = 'datasets/beadpack/beadpack.tif' #DIRECTORY + 'datasets/beadpack/beadpack.tif'
 # Initialize dataset:
-data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=2)
+data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=3)
 
 # Size of the noise vector, used as input to the Generator
 z_dim = 200
 # Number of progressive resolution blocks:
-n_blocks = 4    
+n_blocks = 5 
 # Filters for each resolution block:
 n_filters = {1: 64,
              2: 32,
-             3: 16}
-             #4: 8}    
+             3: 16,
+             4: 8}    
 
 filter_sizes = {1: 3,
                 2: 3,
-                3: 5}
-                #4: 5}        
+                3: 5,
+                4: 5}        
 # Build a models (если модели и логи лежат в папке History, то будут загружены с диска):
 WEIGHTS_DIR = 'models-custom/'
 model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
@@ -60,7 +60,7 @@ sample_interval = 100    # должно быть кратно итерациям
 #n_fadein = np.array([0, 5000, 6000, 8000])
 #n_straight = np.array([12000, 12000, 6000, 25000])
 n_fadein = np.array([0, 3000, 6000, 8000])
-n_straight = np.array([4000, 5000, 6000, 25000])
+n_straight = np.array([5000, 5000, 6000, 25000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 
