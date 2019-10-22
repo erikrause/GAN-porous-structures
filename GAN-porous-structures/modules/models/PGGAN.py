@@ -141,9 +141,6 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     g = BatchNormalization()(g)
     g = ReLU()(g)
     
-    g = Conv2DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(g)
-    g = BatchNormalization()(g)
-    g = ReLU()(g)
     # add new output layer
     g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
     out_image = Activation('tanh')(g)

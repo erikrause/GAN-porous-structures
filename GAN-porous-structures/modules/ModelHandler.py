@@ -1,5 +1,6 @@
-from modules.models import pggan3D as pggan
-from modules.models import base_models3D as base_models
+from modules.models import base_models, pggan
+#from modules.models import pggan3D as pggan
+#from modules.models import base_models3D as base_models
 from modules.preprocess import DataLoader
 import pickle
 import tensorflow as tf
@@ -200,9 +201,9 @@ class ModelHandler():
                     last_discriminators = self.models[base_models.Discriminator][new_shape]
                     last_generators = self.models[base_models.Generator][new_shape]
                     last_model = [last_discriminators, last_generators]
-                else:
-                    if model == base_models.Discriminator:
-                        filters = n_filters[i] // 4
+                #else:
+                    #if model == base_models.Discriminator:
+                        #filters = n_filters[i] // 4
 
                 new_models = pggan.add_block(last_model, n_filters = filters, filter_size = filter_sizes[i])
                 self.models[model].update({new_shape : new_models})
