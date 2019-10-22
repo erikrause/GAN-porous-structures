@@ -411,16 +411,16 @@ class ModelHandler():
             
             downscale = 128 // resolution
             # Get a random batch of real images
-            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
+            imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
             imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
         
             # Generate a batch of fake images
-            z = np.random.normal(0, 1, (batch_size, self.z_dim))
+            z = np.random.normal(0, 1, (batch_size//2, self.z_dim))
             gen_imgs = g_model.predict([z, imgs_mean])
 
             # Train Discriminator
-            d_loss_real = d_model.train_on_batch([imgs, imgs_mean], real)
-            d_loss_fake = d_model.train_on_batch([gen_imgs, imgs_mean], fake)
+            d_loss_real = d_model.train_on_batch([imgs, imgs_mean], real[:batch_size//2])
+            d_loss_fake = d_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size//2])
             self.d_loss, self.d_acc = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
@@ -428,8 +428,9 @@ class ModelHandler():
             # ---------------------
 
             # Generate a batch of fake images
+            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
+            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
-            #gen_imgs = generator.predict([z,imgs_mean])
 
             # Train Generator
             self.g_loss = gan_model.train_on_batch([z, imgs_mean], real)
