@@ -7,7 +7,6 @@ from keras.layers import Input
 from keras.layers.convolutional import MaxPooling3D, AveragePooling3D, MaxPooling2D, AveragePooling2D
 from keras.models import Model
 
-
 class DataLoader(object):
     def __init__(self, filename:str, resolution:tuple, is_tif = True, dims = 3, is_nearest_batch = False):
     

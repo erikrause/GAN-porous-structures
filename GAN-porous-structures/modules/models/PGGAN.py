@@ -45,14 +45,14 @@ def update_fadein(models, step, n_steps, alpha = -1):
 
 def add_block(old_model, n_input_layers=6, n_filters=64, filter_size=3):
     models = []
-    if isinstance(old_model, base_models.Discriminator):
-        models = __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
+    if isinstance(old_model, base_models.Critic):
+        models = __add_critic_block(old_model, n_input_layers, n_filters, filter_size)
     elif isinstance(old_model, base_models.Generator):
         models = __add_generator_block(old_model, n_filters, filter_size)
     elif isinstance(old_model, list):
         discriminators = old_model[0]
         generators = old_model[1]
-        models = __add_gan_block(discriminators, generators)
+        models = __add_wgan_block(discriminators, generators)
 
     return models
 
@@ -137,12 +137,12 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     block_end = old_model.layers[-3].output
     # upsample, and define new block
     upsampling = UpSampling2D()(block_end)
-    g = Conv2DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same')(upsampling)
+    g = Conv2DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(upsampling)
     g = BatchNormalization()(g)
     g = ReLU()(g)
     
     # add new output layer
-    g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same')(g)
+    g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
     out_image = Activation('tanh')(g)
     # define model
     straight_model = base_models.Generator(inputs=old_model.inputs, outputs=out_image)
@@ -158,11 +158,75 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     fadein_model = base_models.Generator(inputs=old_model.inputs, outputs=merged)
     return [straight_model, fadein_model]
 
-def __add_gan_block(discriminators, generators):
-    fadein_model = base_models.GAN(generators[1], discriminators[1])
-    straight_model = base_models.GAN(generators[0], discriminators[0])
+def __add_wgan_block(discriminators, generators):
+    fadein_model = base_models.WGAN(generators[1], discriminators[1])
+    straight_model = base_models.WGAN(generators[0], discriminators[0])
     
     return [straight_model, fadein_model]
 
+def __add_critic_block(old_model, n_input_layers, n_filters, filter_size):
+    #old_input_shape = list(old_model.input_shape) #get_input_shape_at(0)
+    old_input_shape = list(old_model.get_input_shape_at(0))
+    input_img_shape = (old_input_shape[0][-2]*2, 
+                   old_input_shape[0][-2]*2, 
+                   old_input_shape[0][-1])
+    input_img = Input(shape=input_img_shape)
+    
+    # New block/
+    print(n_filters)
+    
+    d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same', kernel_initializer=base_models.weight_init)(input_img)
+    d = BatchNormalization()(d)
+    d = LeakyReLU(alpha=0.02)(d)
+    d = Dropout(rate = 0.2)(d)
+    d = AveragePooling2D()(d)   
 
+    n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
+    d = Conv2D(n_filters_last, kernel_size = filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(d)
+    d = BatchNormalization()(d)
+    d = LeakyReLU(alpha=0.02)(d)
+    d = Dropout(rate = 0.2)(d)
+    d = AveragePooling2D()(d)   
+    
+    block_new = d
+    #/New block
+    
+    for i in range(n_input_layers, len(old_model.layers)):
+        current_layer = old_model.layers[i]
+        print(current_layer)
+        if current_layer.name == 'Input_C':
+            input_C = current_layer.input
+            continue
+        elif current_layer.name == 'Concat_input_C':
+            d = current_layer([d, input_C])
 
+        else:
+            d = current_layer(d)
+
+        prob = current_layer.get_weights()
+        
+    straight_model = base_models.Critic(inputs=[input_img, input_C], outputs=d) #base_models.Discriminator
+
+    downsample = AveragePooling2D()(input_img)
+    
+    block_old = downsample
+    for i in range(1, n_input_layers):
+        block_old = old_model.layers[i](block_old)
+    
+    d = WeightedSum()([block_old, block_new])
+    
+    for i in range(n_input_layers, len(old_model.layers)):
+        current_layer = old_model.layers[i]
+        print(current_layer)
+        if current_layer.name == 'Input_C':
+            input_C = current_layer.input
+            continue
+        elif current_layer.name == 'Concat_input_C':
+            d = current_layer([d, input_C])
+
+        else:
+            d = current_layer(d)
+        
+    fadein_model = base_models.Critic(inputs=[input_img, input_C], outputs=d)
+
+    return [straight_model, fadein_model]

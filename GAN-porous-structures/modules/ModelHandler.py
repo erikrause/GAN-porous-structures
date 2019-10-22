@@ -21,9 +21,6 @@ class ModelHandler():
         self.samples_dir = directory + 'samples'
         # Models initialize:
         self.models = dict()
-        self.discriminators = []
-        self.generators = [] 
-        self.gans = []
         self.n_blocks = n_blocks
         self.start_shape = start_shape
         self.current_shape = start_shape
@@ -38,7 +35,7 @@ class ModelHandler():
         self.end_shape = tuple(self.end_shape)
 
         self.z_dim = z_dim
-        self.build_models(start_shape, z_dim, n_filters, filter_sizes)
+        self.builc_models(start_shape, z_dim, n_filters, filter_sizes)
         #
         # Logs:
         self.d_losses = []
@@ -64,7 +61,7 @@ class ModelHandler():
         #
 
         if weights_dir != '':
-            self.load_models_weights_from_dir(weights_dir)
+            self.loac_models_weights_from_dir(weights_dir)
             self.iteration = input('print start iteration')
             self.model_iteration = input('print start model_iteration')
 
@@ -86,14 +83,14 @@ class ModelHandler():
             # Initialise alpha from last checkpoint:
             if self.is_fadein:
                 fadein_models = []
-                for model in [base_models.Discriminator, base_models.Generator]:
+                for model in [base_models.Critic, base_models.Generator]:
                     fadein_models.append(self.models[model][self.current_shape][self.is_fadein])
                     pggan.update_fadein(fadein_models, 0, 0, alpha = self.parameters['alpha'])
             #################
             #self.iteration = 0  #debug
             #self.model_iteration = 2    #debug
             print('All logs loaded.')
-            self.load_models_weights()
+            self.loac_models_weights()
             print('All weights loaded.')
         else:
             tf.gfile.MkDir(directory)
@@ -136,12 +133,12 @@ class ModelHandler():
         else:
             return 'straight'
 
-    def load_models_weights(self):
+    def loac_models_weights(self):
         #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
         models_dir = '{self.directory}/models-weights/'.format(self=self)
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
-            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+            for model in [base_models.Critic, base_models.Generator, base_models.WGAN]:
                 shape = self.upscale(self.start_shape, k = i)
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
@@ -150,12 +147,12 @@ class ModelHandler():
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
 
-    def load_models(self):
+    def loac_models(self):
         # NEED TO TEST:
         models_dir = '{self.directory}/models/'.format(self=self)
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
-            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+            for model in [base_models.Critic, base_models.Generator, base_models.WGAN]:
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
                     resolution_model[n].load('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
@@ -164,7 +161,7 @@ class ModelHandler():
                                                                                                        res=shape[0]))
         ###########
 
-    def load_models_weights_from_dir(self, weights_dir):
+    def loac_models_weights_from_dir(self, weights_dir):
         for i in range(0, self.n_blocks):
             self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(weights_dir, i))
             self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(weights_dir, i))
@@ -173,17 +170,17 @@ class ModelHandler():
             self.gans[i][0].load_weights('{}/gans/normal_gan-{}.h5'.format(weights_dir, i))
             self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))
 
-    def build_models(self, start_shape:tuple, z_dim:int, n_filters:np.array, filter_sizes:np.array):
+    def builc_models(self, start_shape:tuple, z_dim:int, n_filters:np.array, filter_sizes:np.array):
         # Build base models/
-        models = [base_models.Discriminator, base_models.Generator, base_models.GAN]
+        models = [base_models.Critic, base_models.Generator, base_models.WGAN]
         for model in models:
-            if model == base_models.GAN:
-                dis_last = self.models[base_models.Discriminator][start_shape][0]
+            if model == base_models.WGAN:
+                dis_last = self.models[base_models.Critic][start_shape][0]
                 gen_last = self.models[base_models.Generator][start_shape][0]
                 base_model = model(gen_last, dis_last)
             elif model == base_models.Generator:
                 base_model = model(z_dim)
-            elif model == base_models.Discriminator:
+            elif model == base_models.Critic:
                 base_model = model(img_shape = start_shape)
 
             self.models.update({model : {start_shape : [base_model]}})         
@@ -197,12 +194,12 @@ class ModelHandler():
                 last_model = self.models[model][last_shape][0]
                 
                 filters = n_filters[i]
-                if model  == base_models.GAN:
-                    last_discriminators = self.models[base_models.Discriminator][new_shape]
+                if model  == base_models.WGAN:
+                    last_discriminators = self.models[base_models.Critic][new_shape]
                     last_generators = self.models[base_models.Generator][new_shape]
                     last_model = [last_discriminators, last_generators]
                 #else:
-                    #if model == base_models.Discriminator:
+                    #if model == base_models.Critic:
                         #filters = n_filters[i] // 4
 
                 new_models = pggan.add_block(last_model, n_filters = filters, filter_size = filter_sizes[i])
@@ -256,7 +253,7 @@ class ModelHandler():
         models_dir = '{self.directory}/models-weights/'.format(self=self)
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
-            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+            for model in [base_models.Critic, base_models.Generator, base_models.WGAN]:
                 tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
                 shape = self.upscale(self.start_shape, k = i)
                 resolution_model = self.models[model][shape]
@@ -271,7 +268,7 @@ class ModelHandler():
         models_dir = '{self.directory}/models/'.format(self=self)
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
-            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+            for model in [base_models.Critic, base_models.Generator, base_models.WGAN]:
                 tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
@@ -350,7 +347,7 @@ class ModelHandler():
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
   
-        while (self.model_iteration < len(self.discriminators)*2-1) or (self.model_iteration <= last_model):        # check end of loop
+        while (self.model_iteration < self.n_blocks*2-1) or (self.model_iteration <= last_model):        # check end of loop
             i = self.model_iteration
             if (i % 2 == 0):    # if model is straight
                 self.is_fadein = False
@@ -377,21 +374,21 @@ class ModelHandler():
         int_straight = int(is_straight) # реверс
 
         models = []
-        for model in [base_models.Discriminator, base_models.Generator,base_models.GAN]:
+        for model in [base_models.Critic, base_models.Generator,base_models.WGAN]:
             models.append(self.models[model][self.current_shape][self.is_fadein])
-        d_model = models[0]
+        c_model = models[0]
         g_model = models[1]
-        gan_model = models[2]
+        wgan_model = models[2]
 
-        d_model.summary()
-        plot_model(d_model, to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self))
+        c_model.summary()
+        plot_model(c_model, to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self))
         g_model.summary()
         plot_model(g_model, to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self))
 
         alpha = -1
         # Labels for real/fake imgs
         real = np.ones((batch_size, 1))
-        fake = np.zeros((batch_size, 1))
+        fake = -np.ones((batch_size, 1))
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int_fadein))
 
@@ -406,30 +403,31 @@ class ModelHandler():
 
             start_time = time.time()
             if self.is_fadein:
-                alpha = pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
-                #pggan.update_fadein([g_model, d_model, gan_model], 1, 2)    
+                alpha = pggan.update_fadein([g_model, c_model, wgan_model], self.iteration, iterations)
+                #pggan.update_fadein([g_model, c_model, wgan_model], 1, 2)    
             # -------------------------
-            #  Train the Discriminator
+            #  Train the Critic
             # -------------------------
         
-            #resolution = self.d_model.inputs[0].shape[2].value
+            #resolution = self.c_model.inputs[0].shape[2].value
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
-            #resolution = d_model.inputs[0].shape[1][1]
-            
-            
-            downscale = 128 // resolution
-            # Get a random batch of real images
-            imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
-            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
-        
-            # Generate a batch of fake images
-            z = np.random.normal(0, 1, (batch_size//2, self.z_dim))
-            gen_imgs = g_model.predict([z, imgs_mean])
+            #resolution = c_model.inputs[0].shape[1][1]
 
-            # Train Discriminator
-            d_loss_real = d_model.train_on_batch([imgs, imgs_mean], real[:batch_size//2])
-            d_loss_fake = d_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size//2])
-            self.d_loss, self.d_acc = 0.5 * np.add(d_loss_real, d_loss_fake)
+            prob = []
+            for j in range(5):
+                downscale = 128 // resolution
+                # Get a random batch of real images
+                imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
+                imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
+        
+                # Generate a batch of fake images
+                z = np.random.normal(0, 1, (batch_size//2, self.z_dim))
+                gen_imgs = g_model.predict([z, imgs_mean])
+
+                # Train Critic
+                d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size//2])
+                d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size//2])
+                self.d_loss, self.d_acc = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
             #  Train the Generator
@@ -441,7 +439,7 @@ class ModelHandler():
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
 
             # Train Generator
-            self.g_loss = gan_model.train_on_batch([z, imgs_mean], real)
+            self.g_loss = wgan_model.train_on_batch([z, imgs_mean], real)
             
             end_time = time.time()
             iteration_time = end_time - start_time
@@ -463,7 +461,7 @@ class ModelHandler():
                 # Output a sample of generated image
                 #sample_images(generator)
                 # Get alpha for debug:
-                self.__get_alpha(d_model)
+                self.__get_alpha(c_model)
 
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
