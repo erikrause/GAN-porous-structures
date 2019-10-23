@@ -392,8 +392,8 @@ class ModelHandler():
 
         alpha = -1
         # Labels for real/fake imgs
-        real = np.ones((batch_size, 1))
-        fake = -np.ones((batch_size, 1))
+        fake = np.ones((batch_size, 1))
+        real = -np.ones((batch_size, 1))
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int_fadein))
 

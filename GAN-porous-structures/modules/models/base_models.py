@@ -175,16 +175,16 @@ class Critic(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
-        d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = Conv2D(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Dropout(rate = self.droprate)(d)
         d = AveragePooling2D()(d)
 
         d = Conv2D(64, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Dropout(rate = self.droprate)(d)
         d = AveragePooling2D()(d)
     
         d = Flatten()(d)
@@ -194,7 +194,7 @@ class Critic(Model):
         d = Dense(128, kernel_initializer = weight_init, name='dense')(combined)
         d = BatchNormalization()(d)
         d = ReLU()(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Dropout(rate = self.droprate)(d)
     
         d = Dense(1, activation='linear')(d)
 
