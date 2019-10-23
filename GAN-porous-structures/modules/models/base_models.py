@@ -35,7 +35,7 @@ class WeightClip(Constraint):
                 'c': self.c}
 
 global opt
-opt = RMSprop(lr=0.001)    #from vanilla WGAN paper
+opt = RMSprop(lr=0.0005)    #from vanilla WGAN paper
 #opt = Adam()        # from Progressive growing GAN paper
 
 class Generator(Model):
@@ -176,8 +176,7 @@ class Critic(Model):
             Model.__init__(self, inputs, outputs)
 
         self.compile(loss=wasserstein_loss,
-                      optimizer=opt,
-                      metrics=['accuracy'])
+                      optimizer=opt)
 
     def __build(self, img_shape:tuple):
 

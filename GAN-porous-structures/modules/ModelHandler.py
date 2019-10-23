@@ -45,8 +45,8 @@ class ModelHandler():
         self.g_losses = []
         #
         # For current metrics:
-        self.d_loss_real = []
-        self.d_loss_fake = []
+        self.d_loss_real = 0
+        self.d_loss_fake = 0
         self.g_loss = []
         self.iteration = 0
         self.model_iteration = 0
@@ -435,7 +435,9 @@ class ModelHandler():
                     if  hasattr(layer, 'kernel'):
                         tensor = layer.kernel
                         backend.clip(tensor, -0.01, 0.01)
-                self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
+                #self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
+                self.d_loss_real = np.mean(self.d_loss_real)
+                self.d_loss_fake = np.mean(self.d_loss_fake)
                                 
             # ---------------------
             #  Train the Generator
@@ -464,7 +466,7 @@ class ModelHandler():
 
                 # Output training progress
                 print("%d [D loss real: %f, D loss fake: %f] [G loss: %f] [Time: %f.4]" %
-                      (self.iteration, self.self.d_loss_real, self.d_loss_fake, self.g_loss, iteration_time))
+                      (self.iteration, self.d_loss_real, self.d_loss_fake, self.g_loss, iteration_time))
                 print('Critic learning rate: ', backend.get_value(c_model.optimizer.lr))
                 print('WGAN learning rate: ', backend.get_value(wgan_model.optimizer.lr))
                 # Output a sample of generated image
