@@ -8,6 +8,8 @@ from keras.optimizers import Adam
 from keras import backend
 import tensorflow as tf
 
+import tensorflow.python.keras.backend as K
+
 from modules.models import base_models
 
 class WeightedSum(Add):
@@ -31,7 +33,7 @@ def update_fadein(models, step, n_steps, alpha = -1):
             if isinstance(layer, WeightedSum):
                 # calculate current alpha (linear from 0 to 1)
                 if alpha == -1:
-                    current_alpha = backend.get_value(layer.alpha)
+                    current_alpha = backend.eval(layer.alpha)#K.get_value(layer.alpha)
                     remaining_alpha = 1 - current_alpha
                     remaining_steps = n_steps - step
                     if remaining_steps == 0:

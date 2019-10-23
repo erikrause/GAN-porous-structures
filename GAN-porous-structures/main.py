@@ -19,7 +19,7 @@ import numpy as np
 
 # Start input image dimensions
 channels = 1
-start_shape = (16,16, channels)
+start_shape = (16,16,channels)
 
 #DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
@@ -29,7 +29,7 @@ DIRECTORY = ''
 #DATASET_DIR = DIRECTORY + 'datasets/berea/{}.png'
 DATASET_DIR = 'datasets/beadpack/beadpack.tif' #DIRECTORY + 'datasets/beadpack/beadpack.tif'
 # Initialize dataset:
-data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=2)
+data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=2, is_nearest_batch=True)
 
 # Size of the noise vector, used as input to the Generator
 z_dim = 200
@@ -52,15 +52,15 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters
 # MAIN LOOPv7
 ######################################
 
-batch_size = 64
+batch_size = 16
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 3000, 8000, 10000])
 #n_straight = np.array([1500, 8500, 2500, 2500])
 #n_fadein = np.array([0, 5000, 6000, 8000])
 #n_straight = np.array([12000, 12000, 6000, 25000])
-n_fadein = np.array([0, 3000, 6000, 8000])
-n_straight = np.array([5000, 5000, 6000, 25000])
+n_fadein = np.array([0, 2500, 2000, 2000, 2000])
+n_straight = np.array([4000-4000, 4000, 3000, 3000, 3000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
 

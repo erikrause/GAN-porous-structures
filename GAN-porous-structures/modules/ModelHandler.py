@@ -12,8 +12,6 @@ import matplotlib.pyplot as plt
 from keras.utils import plot_model
 from typing import Dict, Tuple  # попробовать позже (статическая типизация)
 
-from keras.layers import Conv2D
-
 import os.path
 
 class ModelHandler():
@@ -37,7 +35,7 @@ class ModelHandler():
         self.end_shape = tuple(self.end_shape)
 
         self.z_dim = z_dim
-        self.builc_models(start_shape, z_dim, n_filters, filter_sizes)
+        self.build_models(start_shape, z_dim, n_filters, filter_sizes)
         #
         # Logs:
         self.d_losses_real = []
@@ -63,7 +61,7 @@ class ModelHandler():
         #
 
         if weights_dir != '':
-            self.loac_models_weights_from_dir(weights_dir)
+            self.load_models_weights_from_dir(weights_dir)
             self.iteration = input('print start iteration')
             self.model_iteration = input('print start model_iteration')
 
@@ -92,7 +90,7 @@ class ModelHandler():
             #self.iteration = 0  #debug
             #self.model_iteration = 2    #debug
             print('All logs loaded.')
-            self.loac_models_weights()
+            self.load_models_weights()
             print('All weights loaded.')
         else:
             tf.gfile.MkDir(directory)
@@ -135,7 +133,7 @@ class ModelHandler():
         else:
             return 'straight'
 
-    def loac_models_weights(self):
+    def load_models_weights(self):
         #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
         models_dir = '{self.directory}/models-weights/'.format(self=self)
         for i in range(0, self.n_blocks):
@@ -149,7 +147,7 @@ class ModelHandler():
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
 
-    def loac_models(self):
+    def load_models(self):
         # NEED TO TEST:
         models_dir = '{self.directory}/models/'.format(self=self)
         for i in range(0, self.n_blocks):
@@ -163,7 +161,7 @@ class ModelHandler():
                                                                                                        res=shape[0]))
         ###########
 
-    def loac_models_weights_from_dir(self, weights_dir):
+    def load_models_weights_from_dir(self, weights_dir):
         for i in range(0, self.n_blocks):
             self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(weights_dir, i))
             self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(weights_dir, i))
@@ -172,7 +170,7 @@ class ModelHandler():
             self.gans[i][0].load_weights('{}/gans/normal_gan-{}.h5'.format(weights_dir, i))
             self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))
 
-    def builc_models(self, start_shape:tuple, z_dim:int, n_filters:np.array, filter_sizes:np.array):
+    def build_models(self, start_shape:tuple, z_dim:int, n_filters:np.array, filter_sizes:np.array):
         # Build base models/
         models = [base_models.Critic, base_models.Generator, base_models.WGAN]
         for model in models:
@@ -285,8 +283,8 @@ class ModelHandler():
         step = resolution//step
 
         if axis == 3:
-            z = np.random.normal(0, 1, (1, self.z_dim))
-            imgs_mean = np.random.random((1, 1))*2 - 1
+            z = np.random.normal(0, 1, (n_imgs, self.z_dim))
+            imgs_mean = np.random.random((n_imgs, 1))*2 - 1
             ax=(1,2,3)
         else:
             z = np.random.normal(0, 1, (n_imgs, self.z_dim))
@@ -389,7 +387,7 @@ class ModelHandler():
         plot_model(c_model, to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self))
         g_model.summary()
         plot_model(g_model, to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self))
-
+        tf.global_variables_initializer()
         alpha = -1
         # Labels for real/fake imgs
         fake = np.ones((batch_size, 1))
@@ -405,10 +403,11 @@ class ModelHandler():
         #self.sample_next(self.current_shape[0], self.iteration, 'start')  
 
         while self.iteration < iterations:
-
             start_time = time.time()
             if self.is_fadein:
+                prob1 = time.time()
                 alpha = pggan.update_fadein([g_model, c_model, wgan_model], self.iteration, iterations)
+                prob1 = prob1 - time.time()
                 #pggan.update_fadein([g_model, c_model, wgan_model], 1, 2)    
             # -------------------------
             #  Train the Critic
@@ -422,7 +421,7 @@ class ModelHandler():
             # Get a random batch of real images
             imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
             imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
-              
+            
             # Generate a batch of fake images
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
             gen_imgs = g_model.predict([z, imgs_mean])

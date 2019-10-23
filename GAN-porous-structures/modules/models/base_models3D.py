@@ -40,8 +40,8 @@ class Generator(Model):
 
         combined = Concatenate()([input_Z, input_C])
         
-        g = Dense(64 * 4 * 4)(combined)
-        g = Reshape((4, 4, 64))(g)
+        g = Dense(64 * 2 * 2 * 2)(combined)
+        g = Reshape((2, 2, 2, 64))(g)
   
         g = Conv3DTranspose(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)

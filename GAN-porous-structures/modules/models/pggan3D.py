@@ -168,7 +168,8 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
     #old_input_shape = list(old_model.input_shape) #get_input_shape_at(0)
     old_input_shape = list(old_model.get_input_shape_at(0))
     input_img_shape = (old_input_shape[0][-2]*2, 
-                   old_input_shape[0][-2]*2, 
+                   old_input_shape[0][-2]*2,
+                   old_input_shape[0][-2]*2,
                    old_input_shape[0][-1])
     input_img = Input(shape=input_img_shape)
     
