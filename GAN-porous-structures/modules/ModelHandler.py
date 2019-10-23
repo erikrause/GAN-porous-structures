@@ -430,11 +430,11 @@ class ModelHandler():
                 self.d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size//2])
                 self.d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size//2])
                 #Clipping weights (WGAN)
-                for layer in c_model.layers:
-                    #name = layer.name
-                    if  hasattr(layer, 'kernel'):
-                        tensor = layer.kernel
-                        backend.clip(tensor, -0.01, 0.01)
+                #for layer in c_model.layers:
+                #    #name = layer.name
+                #    if  hasattr(layer, 'kernel'):
+                #        tensor = layer.kernel
+                #        backend.clip(tensor, -0.01, 0.01)
                 #self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
                 self.d_loss_real = np.mean(self.d_loss_real)
                 self.d_loss_fake = np.mean(self.d_loss_fake)
