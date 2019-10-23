@@ -115,9 +115,9 @@ class ModelHandler():
         return os.path.exists('{self.directory}/{filename}'
                               .format(self=self,filename=filename))
     def __check_log_files(self):
-        return (self.__check_file('/d_losses.log') and
+        return (self.__check_file('/d_losses_real.log') and
                 self.__check_file('/g_losses.log') and
-                self.__check_file('/d_acces.log'))
+                self.__check_file('/d_losses_fake.log'))
 
     # не используется
     def check_model_files(self):
@@ -287,11 +287,13 @@ class ModelHandler():
         if axis == 3:
             z = np.random.normal(0, 1, (1, self.z_dim))
             imgs_mean = np.random.random((1, 1))*2 - 1
-            gen_imgs = generator.predict([z, imgs_mean])
+            ax=(1,2,3)
         else:
             z = np.random.normal(0, 1, (n_imgs, self.z_dim))
             imgs_mean = np.random.random((n_imgs, 1))*2 - 1
+            ax=(1,2)
         gen_imgs = generator.predict([z, imgs_mean])
+        rm = np.mean(gen_imgs, axis=ax)
         gen_imgs = (gen_imgs+1)*127.5
         gen_imgs = gen_imgs.astype('uint8')
         
@@ -304,12 +306,13 @@ class ModelHandler():
                 img = Image.fromarray(gen_imgs[0,i*step,:,:,0])
             elif axis == 2:
                 img = Image.fromarray(gen_imgs[i,:,:,0])
-            
-            file_name = '{self.samples_dir}/x{resolution}-{fn}-i{iteration}-n{i}'.format(self=self,
+            file_name = '{self.samples_dir}/x{resolution}-{fn}-i{iteration}-n{i}-(zm{imgs_mean:2f}-rm{rm:2f})'.format(self=self,
                                                                                                resolution=resolution,
                                                                                                fn=fn,
                                                                                                iteration=iteration,
-                                                                                               i=i)
+                                                                                               i=i,
+                                                                                               imgs_mean=imgs_mean[i][0],
+                                                                                               rm=rm[i][0])
 
             
 
@@ -415,30 +418,27 @@ class ModelHandler():
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
             #resolution = c_model.inputs[0].shape[1][1]
 
-            prob = []
-            for j in range(5):
-                downscale = self.end_shape[0] // resolution
-                # Get a random batch of real images
-                imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
-                imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
-                
-                # Generate a batch of fake images
-                z = np.random.normal(0, 1, (batch_size//2, self.z_dim))
-                gen_imgs = g_model.predict([z, imgs_mean])
+            downscale = self.end_shape[0] // resolution
+            # Get a random batch of real images
+            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
+            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
+              
+            # Generate a batch of fake images
+            z = np.random.normal(0, 1, (batch_size, self.z_dim))
+            gen_imgs = g_model.predict([z, imgs_mean])
 
-                # Train Critic
-                self.d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size//2])
-                self.d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size//2])
-                #Clipping weights (WGAN)
-                #for layer in c_model.layers:
-                #    #name = layer.name
-                #    if  hasattr(layer, 'kernel'):
-                #        tensor = layer.kernel
-                #        backend.clip(tensor, -0.01, 0.01)
-                #self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
-                self.d_loss_real = np.mean(self.d_loss_real)
-                self.d_loss_fake = np.mean(self.d_loss_fake)
-                                
+            # Train Critic
+            self.d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size])
+            self.d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size])
+            #Clipping weights (WGAN)
+            for layer in c_model.layers:
+                if  hasattr(layer, 'kernel'):
+                     tensor = layer.kernel
+                     backend.clip(tensor, -0.01, 0.01)
+            #self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
+            self.d_loss_real = np.mean(self.d_loss_real)
+            self.d_loss_fake = np.mean(self.d_loss_fake)    
+            
             # ---------------------
             #  Train the Generator
             # ---------------------
@@ -461,7 +461,7 @@ class ModelHandler():
                 self.save_metrics()
                 self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
-                self.generate_imgs(resolution, self.iteration, g_model, axis, 1, fadein=self.is_fadein)
+                self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein)
                 #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress

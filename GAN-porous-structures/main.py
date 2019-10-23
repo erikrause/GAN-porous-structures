@@ -34,7 +34,7 @@ data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=2)
 # Size of the noise vector, used as input to the Generator
 z_dim = 200
 # Number of progressive resolution blocks:
-n_blocks = 1
+n_blocks = 4
 # Filters for each resolution block:
 n_filters = {1: 64,
              2: 32,

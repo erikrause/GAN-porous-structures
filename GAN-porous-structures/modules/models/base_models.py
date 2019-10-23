@@ -22,8 +22,8 @@ global weight_init
 weight_init = RandomNormal(stddev=0.02)
 
 global opt
-#opt = RMSprop(lr=0.001)    #from vanilla WGAN paper
-opt = Adam(lr=0.001)        # from Progressive growing GAN paper
+opt = RMSprop(lr=0.001)    #from vanilla WGAN paper
+#opt = Adam(lr=0.001)        # from Progressive growing GAN paper
 
 class Generator(Model):
     def __init__(self, inputs, outputs = None):
@@ -43,14 +43,15 @@ class Generator(Model):
         g = Dense(64 * 4 * 4)(combined)
         g = Reshape((4, 4, 64))(g)
   
-        g = Conv2DTranspose(64, kernel_size=3, strides=2, padding='same', kernel_initializer = weight_init)(g)
+        g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        #g = UpSampling2D()(g)
+        g = UpSampling2D()(g)
 
-        g = Conv2DTranspose(64, kernel_size=3, strides=2, padding='same', kernel_initializer = weight_init)(g)
+        g = Conv2DTranspose(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
+        g = UpSampling2D()(g)
     
         g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         img = Activation('tanh')(g)
@@ -97,7 +98,7 @@ class Discriminator(Model):
         combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
         d = Dense(64, kernel_initializer = weight_init)(combined)
-        #d = BatchNormalization()(d)
+        d = BatchNormalization()(d)
         d = ReLU()(d)
         d = Dropout(rate = self.droprate)(d)
     
@@ -174,7 +175,7 @@ class Critic(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
-        d = Conv2D(64, kernel_size=1, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
@@ -191,7 +192,7 @@ class Critic(Model):
         combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
         d = Dense(128, kernel_initializer = weight_init, name='dense')(combined)
-        #d = BatchNormalization()(d)
+        d = BatchNormalization()(d)
         d = ReLU()(d)
         d = Dropout(rate = self.droprate)(d)
     
