@@ -175,14 +175,15 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
     # New block/
     print(n_filters)
     
-    d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same', kernel_initializer=base_models.weight_init)(input_img)
+    d = Conv2D(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(input_img)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.02)(d)
     #d = Dropout(rate = 0.2)(d)
     d = AveragePooling2D()(d)   
 
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
-    d = Conv2D(n_filters_last, kernel_size = filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(d)
+    kernel_size_last = old_model.layers[1].kernel_size
+    d = Conv2D(n_filters_last, kernel_size = kernel_size_last, strides=1, padding='same', kernel_initializer=base_models.weight_init)(d)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.02)(d)
     #d = Dropout(rate = 0.2)(d)

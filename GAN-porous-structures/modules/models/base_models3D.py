@@ -9,18 +9,21 @@ from keras import backend
 import tensorflow as tf
 
 from keras.initializers import RandomNormal
+from keras.constraints import Constraint
+#from keras.constraints import MaxNorm
 
 from keras.layers.merge import _Merge
 
 def wasserstein_loss(y_true, y_pred):
 	return backend.mean(y_true * y_pred)
 
+
 global weight_init
 weight_init = RandomNormal(stddev=0.02)
 
-
 global opt
-opt = RMSprop(lr=0.00005)
+opt = RMSprop(lr=0.001)    #from vanilla WGAN paper
+#opt = Adam(lr=0.001)        # from Progressive growing GAN paper
 
 class Generator(Model):
     def __init__(self, inputs, outputs = None):
@@ -37,17 +40,18 @@ class Generator(Model):
 
         combined = Concatenate()([input_Z, input_C])
         
-        g = Dense(128 * 2 * 2 * 2)(combined)
-        g = Reshape((2, 2, 2, 128))(g)
+        g = Dense(64 * 4 * 4)(combined)
+        g = Reshape((4, 4, 64))(g)
   
-        g = Conv3DTranspose(128, kernel_size=3, strides=2, padding='same', kernel_initializer = weight_init)(g)
+        g = Conv3DTranspose(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        #g = UpSampling3D()(g)
+        g = UpSampling3D()(g)
 
-        g = Conv3DTranspose(64, kernel_size=3, strides=2, padding='same', kernel_initializer = weight_init)(g)
+        g = Conv3DTranspose(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
+        g = UpSampling3D()(g)
     
         g = Conv3DTranspose(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         img = Activation('tanh')(g)
@@ -77,13 +81,13 @@ class Discriminator(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling3D()(d)
     
-        d = Conv3D(64, kernel_size=1, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
+        d = Conv3D(8, kernel_size=1, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
         d = AveragePooling3D()(d)
 
-        d = Conv3D(128, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        d = Conv3D(16, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
@@ -93,8 +97,8 @@ class Discriminator(Model):
 
         combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(128, kernel_initializer = weight_init)(combined)
-        #d = BatchNormalization()(d)
+        d = Dense(64, kernel_initializer = weight_init)(combined)
+        d = BatchNormalization()(d)
         d = ReLU()(d)
         d = Dropout(rate = self.droprate)(d)
     
@@ -160,8 +164,7 @@ class Critic(Model):
             Model.__init__(self, inputs, outputs)
 
         self.compile(loss=wasserstein_loss,
-                      optimizer=opt,
-                      metrics=['accuracy'])
+                      optimizer=opt)
 
     def __build(self, img_shape:tuple):
 
@@ -172,26 +175,26 @@ class Critic(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling3D()(d)
     
-        d = Conv3D(64, kernel_size=1, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init )(input_img)
+        d = Conv3D(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Dropout(rate = self.droprate)(d)
         d = AveragePooling3D()(d)
 
-        d = Conv3D(128, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init )(d)
+        d = Conv3D(64, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Dropout(rate = self.droprate)(d)
         d = AveragePooling3D()(d)
     
         d = Flatten()(d)
 
         combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(128, kernel_initializer = weight_init )(combined)
-        #d = BatchNormalization()(d)
+        d = Dense(128, kernel_initializer = weight_init, name='dense')(combined)
+        d = BatchNormalization()(d)
         d = ReLU()(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Dropout(rate = self.droprate)(d)
     
         d = Dense(1, activation='linear')(d)
 
