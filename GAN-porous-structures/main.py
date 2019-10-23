@@ -19,7 +19,7 @@ import numpy as np
 
 # Start input image dimensions
 channels = 1
-start_shape = (8,8,8 channels)
+start_shape = (16,16, channels)
 
 #DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
 #DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
@@ -29,12 +29,12 @@ DIRECTORY = ''
 #DATASET_DIR = DIRECTORY + 'datasets/berea/{}.png'
 DATASET_DIR = 'datasets/beadpack/beadpack.tif' #DIRECTORY + 'datasets/beadpack/beadpack.tif'
 # Initialize dataset:
-data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=3)
+data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=2)
 
 # Size of the noise vector, used as input to the Generator
 z_dim = 200
 # Number of progressive resolution blocks:
-n_blocks = 5 
+n_blocks = 1
 # Filters for each resolution block:
 n_filters = {1: 64,
              2: 32,

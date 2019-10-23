@@ -9,18 +9,34 @@ from keras import backend
 import tensorflow as tf
 
 from keras.initializers import RandomNormal
+from keras.constraints import Constraint
+#from keras.constraints import MaxNorm
 
 from keras.layers.merge import _Merge
 
 def wasserstein_loss(y_true, y_pred):
 	return backend.mean(y_true * y_pred)
 
+
 global weight_init
 weight_init = RandomNormal(stddev=0.02)
 
+class WeightClip(Constraint):
+    '''Clips the weights incident to each hidden unit to be inside a range
+    '''
+    def __init__(self, c=2):
+        self.c = c
+
+    def __call__(self, p):
+        return backend.clip(p, -self.c, self.c)
+
+    def get_config(self):
+        return {'name': 'WeightClip',
+                'c': self.c}
 
 global opt
-opt = RMSprop(lr=0.00005)
+opt = RMSprop(lr=0.001)    #from vanilla WGAN paper
+#opt = Adam()        # from Progressive growing GAN paper
 
 class Generator(Model):
     def __init__(self, inputs, outputs = None):
@@ -37,10 +53,10 @@ class Generator(Model):
 
         combined = Concatenate()([input_Z, input_C])
         
-        g = Dense(64 * 4 * 4)(combined)
-        g = Reshape((4, 4, 64))(g)
+        g = Dense(128 * 4 * 4)(combined)
+        g = Reshape((4, 4, 128))(g)
   
-        g = Conv2DTranspose(64, kernel_size=3, strides=2, padding='same', kernel_initializer = weight_init)(g)
+        g = Conv2DTranspose(128, kernel_size=3, strides=2, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
         #g = UpSampling2D()(g)
@@ -83,7 +99,7 @@ class Discriminator(Model):
         d = Dropout(rate = self.droprate)(d)
         d = AveragePooling2D()(d)
 
-        d = Conv2D(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        d = Conv2D(128, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
@@ -172,13 +188,13 @@ class Critic(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
-        d = Conv2D(64, kernel_size=1, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init )(input_img)
+        d = Conv2D(64, kernel_size=1, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
         d = AveragePooling2D()(d)
 
-        d = Conv2D(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init )(d)
+        d = Conv2D(128, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
@@ -188,7 +204,7 @@ class Critic(Model):
 
         combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(128, kernel_initializer = weight_init )(combined)
+        d = Dense(128, kernel_initializer = weight_init, name='dense')(combined)
         #d = BatchNormalization()(d)
         d = ReLU()(d)
         d = Dropout(rate = self.droprate)(d)

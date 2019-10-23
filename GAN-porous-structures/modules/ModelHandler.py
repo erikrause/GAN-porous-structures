@@ -1,6 +1,6 @@
-#from modules.models import base_models, pggan
-from modules.models import pggan3D as pggan
-from modules.models import base_models3D as base_models
+from modules.models import base_models, pggan
+#from modules.models import pggan3D as pggan
+#from modules.models import base_models3D as base_models
 from modules.preprocess import DataLoader
 import pickle
 import tensorflow as tf
@@ -11,6 +11,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from keras.utils import plot_model
 from typing import Dict, Tuple  # попробовать позже (статическая типизация)
+
+from keras.layers import Conv2D
 
 import os.path
 
@@ -38,14 +40,14 @@ class ModelHandler():
         self.builc_models(start_shape, z_dim, n_filters, filter_sizes)
         #
         # Logs:
-        self.d_losses = []
+        self.d_losses_real = []
+        self.d_losses_fake = []
         self.g_losses = []
-        self.d_acces = []
         #
         # For current metrics:
-        self.d_loss = []
+        self.d_loss_real = []
+        self.d_loss_fake = []
         self.g_loss = []
-        self.d_acc = []
         self.iteration = 0
         self.model_iteration = 0
         self.resolution_iteration = 0
@@ -66,15 +68,15 @@ class ModelHandler():
             self.model_iteration = input('print start model_iteration')
 
         elif self.__check_log_files():
-            self.d_losses = self.load_from_file('/d_losses.log')
-            self.d_loss = self.d_losses[-1][0]
+            self.d_losses_real = self.load_from_file('/d_losses_real.log')
+            self.d_losses_fake = self.load_from_file('/d_losses_fake.log')
+            self.d_loss_real = self.d_losses_real[-1][0]
+            self.d_loss_fake = self.d_losses_fake[-1][0]
             self.g_losses = self.load_from_file('/g_losses.log')
             self.g_loss = self.g_losses[-1][0]
-            self.d_acces = self.load_from_file('/d_acces.log')
-            self.d_acc = self.d_acces[-1][0]
-            self.iteration = self.d_losses[-1][-3]
-            self.model_iteration = self.d_losses[-1][-2]
-            self.is_fadein = bool(self.d_losses[-1][-1])
+            self.iteration = self.d_losses_real[-1][-3]
+            self.model_iteration = self.d_losses_real[-1][-2]
+            self.is_fadein = bool(self.d_losses_real[-1][-1])
             self.parameters = self.load_from_file('/parameters')
 
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
@@ -105,9 +107,9 @@ class ModelHandler():
         print('iteration: ', self.iteration)
         print('model_iteration: ', self.model_iteration)
         print('is_fadein', int(self.is_fadein))
-        print('d_loss: ', self.d_loss)
+        print('d_loss_real: ', self.d_loss_real)
+        print('d_loss_fake: ', self.d_loss_fake)
         print('g_loss: ', self.g_loss)
-        print('d_acc: ', self.d_acc)
 
     def __check_file(self, filename):
         return os.path.exists('{self.directory}/{filename}'
@@ -222,13 +224,13 @@ class ModelHandler():
         
     def save_metrics(self):#, d_loss, g_loss, d_acc):
         # NEED TO CLEAR CODE:
-        self.__update_metric(self.d_loss, self.d_losses)
+        self.__update_metric(self.d_loss_real, self.d_losses_real)
+        self.__update_metric(self.d_loss_fake, self.d_losses_fake)
         self.__update_metric(self.g_loss, self.g_losses)
-        self.__update_metric(self.d_acc, self.d_acces)
 
-        self.__to_file(self.d_losses, '/d_losses.log')
+        self.__to_file(self.d_losses_real, '/d_losses_real.log')
+        self.__to_file(self.d_losses_fake, '/d_losses_fake.log')
         self.__to_file(self.g_losses, '/g_losses.log')
-        self.__to_file(self.d_acces, '/d_acces.log')
         self.__to_file(self.parameters, '/parameters')
         ######################
 
@@ -415,20 +417,26 @@ class ModelHandler():
 
             prob = []
             for j in range(5):
-                downscale = 128 // resolution
+                downscale = self.end_shape[0] // resolution
                 # Get a random batch of real images
                 imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
                 imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
-        
+                
                 # Generate a batch of fake images
                 z = np.random.normal(0, 1, (batch_size//2, self.z_dim))
                 gen_imgs = g_model.predict([z, imgs_mean])
 
                 # Train Critic
-                d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size//2])
-                d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size//2])
-                self.d_loss, self.d_acc = 0.5 * np.add(d_loss_real, d_loss_fake)
-
+                self.d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size//2])
+                self.d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size//2])
+                #Clipping weights (WGAN)
+                for layer in c_model.layers:
+                    #name = layer.name
+                    if  hasattr(layer, 'kernel'):
+                        tensor = layer.kernel
+                        backend.clip(tensor, -0.01, 0.01)
+                self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
+                                
             # ---------------------
             #  Train the Generator
             # ---------------------
@@ -455,9 +463,10 @@ class ModelHandler():
                 #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
-                print("%d [D loss: %f, acc.: %.2f%%] [G loss: %f] [Time: %f.4]" %
-                      (self.iteration, self.d_loss, 100.0 * self.d_acc, self.g_loss, iteration_time))
-
+                print("%d [D loss real: %f, D loss fake: %f] [G loss: %f] [Time: %f.4]" %
+                      (self.iteration, self.self.d_loss_real, self.d_loss_fake, self.g_loss, iteration_time))
+                print('Critic learning rate: ', backend.get_value(c_model.optimizer.lr))
+                print('WGAN learning rate: ', backend.get_value(wgan_model.optimizer.lr))
                 # Output a sample of generated image
                 #sample_images(generator)
                 # Get alpha for debug:
