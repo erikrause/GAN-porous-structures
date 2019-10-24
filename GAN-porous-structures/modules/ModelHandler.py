@@ -11,8 +11,10 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from keras.utils import plot_model
 from typing import Dict, Tuple  # попробовать позже (статическая типизация)
-
 import os.path
+import _thread as thread
+
+
 
 class ModelHandler():
     def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader, weights_dir=''):     #, discriminators, generators, gans):
@@ -368,9 +370,26 @@ class ModelHandler():
           
             self.train_block(iterations, batch_size, sample_interval, n_resolution)
 
-            self.model_iteration += 1   
-            self.iteration = 0 
-          
+            if not self.is_interrupt:
+                self.model_iteration += 1   
+                self.iteration = 0
+            else:
+                #input_string = self.input_string
+                #print('Change total iterations for {} model, or print Enter to exit: '.format(self.model_iteration))
+                #input_string = input()
+                #if input_string.startswith('-') and input_string[1:].isdigit():
+                    #di = int(input_string)
+                    #self.iterations = input_string + di
+                #else:
+                break
+    
+    # Thread for interrupt train loop with keyboard: 
+    def input_thread(self, is_interrupt):
+        input()
+        is_interrupt.append(True)
+    ##############
+
+
     def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
         # Get models for current resolution layer:
         int_fadein = int(self.is_fadein)
@@ -398,6 +417,8 @@ class ModelHandler():
         real = -np.ones((batch_size, 1))
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int_fadein))
+        print('total iterations: ', iterations)
+        print('current iteration: ', self.iteration)
 
         #resolution = self.start_shape[0]*2**(n_resolution)
         print(self.current_shape)
@@ -406,7 +427,11 @@ class ModelHandler():
         self.generate_imgs(resolution, self.iteration, g_model, axis, n_imgs = 1, fadein=self.is_fadein)
         #self.sample_next(self.current_shape[0], self.iteration, 'start')  
 
-        while self.iteration < iterations:
+        self.is_interrupt = []
+        self.input_string = ''
+        thread.start_new_thread(self.input_thread, (self.is_interrupt,))
+
+        while self.iteration < iterations and not self.is_interrupt:
             start_time = time.time()
             if self.is_fadein:
                 #prob1 = time.time()
