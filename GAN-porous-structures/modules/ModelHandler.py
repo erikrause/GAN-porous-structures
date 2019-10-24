@@ -80,6 +80,7 @@ class ModelHandler():
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
             self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
 
+            ################
             # Initialise alpha from last checkpoint:
             if self.is_fadein:
                 fadein_models = []
@@ -87,8 +88,7 @@ class ModelHandler():
                     fadein_models.append(self.models[model][self.current_shape][self.is_fadein])
                     pggan.update_fadein(fadein_models, 0, 0, alpha = self.parameters['alpha'])
             #################
-            #self.iteration = 0  #debug
-            #self.model_iteration = 2    #debug
+
             print('All logs loaded.')
             self.load_models_weights()
             print('All weights loaded.')
@@ -115,7 +115,7 @@ class ModelHandler():
     def __check_log_files(self):
         return (self.__check_file('/d_losses_real.log') and
                 self.__check_file('/g_losses.log') and
-                self.__check_file('/d_losses_fake.log'))
+                self.__check_file('/d_losses_fake.log'))    #need to refactoring
 
     # не используется
     def check_model_files(self):
@@ -168,7 +168,7 @@ class ModelHandler():
             self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(weights_dir, i))
             self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(weights_dir, i))
             self.gans[i][0].load_weights('{}/gans/normal_gan-{}.h5'.format(weights_dir, i))
-            self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))
+            self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))     #need to refactoring
 
     def build_models(self, start_shape:tuple, z_dim:int, n_filters:np.array, filter_sizes:np.array):
         # Build base models/
@@ -199,7 +199,7 @@ class ModelHandler():
                     last_generators = self.models[base_models.Generator][new_shape]
                     last_model = [last_discriminators, last_generators]
                 #else:
-                    #if model == base_models.Critic:
+                    #if model == base_models.Discriminator:
                         #filters = n_filters[i] // 4
 
                 new_models = pggan.add_block(last_model, n_filters = filters, filter_size = filter_sizes[i])
@@ -221,7 +221,7 @@ class ModelHandler():
         #return self.generators[current]
         
     def save_metrics(self):#, d_loss, g_loss, d_acc):
-        # NEED TO CLEAR CODE:
+        # NEED TO REFACTORING:
         self.__update_metric(self.d_loss_real, self.d_losses_real)
         self.__update_metric(self.d_loss_fake, self.d_losses_fake)
         self.__update_metric(self.g_loss, self.g_losses)
@@ -320,7 +320,7 @@ class ModelHandler():
             
             img.save('{file_name}-{e}.png'.format(file_name=file_name, e=e))
     
-    # не используется
+    # не используется (for debug)
     def sample_next(self, resolution, iteration, description=''):   
         tf.gfile.MkDir('{self.samples_dir}/next/x32-norm'.format(self=self))
         self.gen_two(self.generators[1][0], '/next/x32-norm-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
@@ -332,7 +332,7 @@ class ModelHandler():
         self.gen_two(self.generators[2][1], '/next/x64-fade-i{}-m{}-{}'.format(iteration, self.model_iteration, description))
         #self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
         #self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
-    # не используется
+    # не используется (for debug)
     def gen_two(self, generator, filename):
         imgs_mean = np.array([[0.15]])
         gen_img = generator.predict([self.z_global, imgs_mean])
@@ -407,8 +407,9 @@ class ModelHandler():
             if self.is_fadein:
                 prob1 = time.time()
                 alpha = pggan.update_fadein([g_model, c_model, wgan_model], self.iteration, iterations)
-                prob1 = prob1 - time.time()
-                #pggan.update_fadein([g_model, c_model, wgan_model], 1, 2)    
+                prob2 = time.time() - prob1
+                #pggan.update_fadein([g_model, c_model, wgan_model], 1, 2) 
+            print('fadein time: ', prob2)
             # -------------------------
             #  Train the Critic
             # -------------------------
@@ -429,11 +430,18 @@ class ModelHandler():
             # Train Critic
             self.d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size])
             self.d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size])
-            #Clipping weights (WGAN)
-            for layer in c_model.layers:
-                if  hasattr(layer, 'kernel'):
-                     tensor = layer.kernel
-                     backend.clip(tensor, -0.01, 0.01)
+
+            ##############################
+            # Clipping weights (WGAN) with plaidml backend (with tf cliping will be on kernel_konstraint in models builder).
+            # NOTE: this code will affect on update_fadein(get/set_value) slowdown when using tf backend.
+            if base_models.constraint == None:
+                clip_val = base_models.clip_value
+                for layer in c_model.layers:
+                    if  hasattr(layer, 'kernel'):
+                         tensor = layer.kernel
+                         backend.clip(tensor, -clip_val, clip_val)
+            ###############################
+
             #self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
             self.d_loss_real = np.mean(self.d_loss_real)
             self.d_loss_fake = np.mean(self.d_loss_fake)    

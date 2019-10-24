@@ -14,16 +14,44 @@ from keras.constraints import Constraint
 
 from keras.layers.merge import _Merge
 
-def wasserstein_loss(y_true, y_pred):
-	return backend.mean(y_true * y_pred)
-
-
-global weight_init
-weight_init = RandomNormal(stddev=0.02)
-
+global constraint
+global clip_value
 global opt
+global weight_init
+
+constraint = None
+clip_value = 0.01
+current_backend = backend.backend()
+
 opt = RMSprop(lr=0.001)    #from vanilla WGAN paper
 #opt = Adam(lr=0.001)        # from Progressive growing GAN paper
+weight_init = RandomNormal(stddev=0.02)
+
+# clip model weights to a given hypercube (vanilla WGAN)
+class ClipConstraint(Constraint):
+	# set clip value when initialized
+	def __init__(self, clip_value):
+		self.clip_value = clip_value
+
+	# clip model weights to hypercube
+	def __call__(self, weights):
+		return backend.clip(weights, -self.clip_value, self.clip_value)
+
+	# get the config
+	def get_config(self):
+		return {'clip_value': self.clip_value}
+
+if current_backend == 'tensorflow':
+    constraint = ClipConstraint(clip_value)      # WGAN constraint for critics kernel_constraint.
+    print(current_backend)
+elif current_backend == 'plaidml':
+    print(current_backend)              # With plaidml constrainsts will do in train loop.
+else:
+    print(' WARNING: BACKEND ' + current_backend + ' NOT SUPPORTED')
+
+
+def wasserstein_loss(y_true, y_pred):
+	return backend.mean(y_true * y_pred)
 
 class Generator(Model):
     def __init__(self, inputs, outputs = None):
@@ -175,13 +203,13 @@ class Critic(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
-        d = Conv2D(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = Conv2D(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init, kernel_constraint=constraint)(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         #d = Dropout(rate = self.droprate)(d)
         d = AveragePooling2D()(d)
 
-        d = Conv2D(64, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init)(d)
+        d = Conv2D(64, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init, kernel_constraint=constraint)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         #d = Dropout(rate = self.droprate)(d)
@@ -191,12 +219,12 @@ class Critic(Model):
 
         combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(128, kernel_initializer = weight_init, name='dense')(combined)
+        d = Dense(128, kernel_initializer = weight_init, name='dense', kernel_constraint=constraint)(combined)
         d = BatchNormalization()(d)
         d = ReLU()(d)
         #d = Dropout(rate = self.droprate)(d)
     
-        d = Dense(1, activation='linear')(d)
+        d = Dense(1, activation='linear', kernel_constraint=constraint)(d)      #нужен ли constraint для Dense?
 
 
         model = Model(inputs=[input_img, input_C], outputs=d)
