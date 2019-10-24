@@ -3,6 +3,7 @@ from keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
                           Concatenate, Layer)
 from keras.layers.advanced_activations import LeakyReLU, ReLU
 from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
+from keras.layers.convolutional import Conv3D, Conv3DTranspose, MaxPooling3D, UpSampling3D, AveragePooling3D
 from keras.models import Model
 from keras.optimizers import Adam, RMSprop
 from keras import backend
@@ -10,7 +11,7 @@ import tensorflow as tf
 
 from keras.initializers import RandomNormal
 from keras.constraints import Constraint
-#from keras.constraints import MaxNorm
+#from keras.constraints import MinMaxNorm
 
 from keras.layers.merge import _Merge
 
@@ -54,7 +55,18 @@ def wasserstein_loss(y_true, y_pred):
 	return backend.mean(y_true * y_pred)
 
 class Generator(Model):
-    def __init__(self, inputs, outputs = None):
+    def __init__(self, inputs, start_img_shape, outputs = None):
+
+        self.start_img_shape = start_img_shape
+        self.dims = len(self.start_img_shape) - 1
+
+        if self.dims == 3:
+            self.conv = Conv3DTranspose
+            self.upsample = UpSampling3D
+        elif self.dims == 2:
+            self.conv = Conv2DTranspose
+            self.upsample = UpSampling2D
+
         if outputs == None:
             model = self.__build(inputs)
             Model.__init__(self, model.inputs, model.outputs)
@@ -67,27 +79,39 @@ class Generator(Model):
         input_C = Input(shape=(1,))
 
         combined = Concatenate()([input_Z, input_C])
-        
-        g = Dense(64 * 4 * 4)(combined)
-        g = Reshape((4, 4, 64))(g)
-  
-        g = Conv2DTranspose(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
-        g = UpSampling2D()(g)
 
-        g = Conv2DTranspose(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        units = 64
+        channels = self.start_img_shape[-1]   #?
+        hidden_shape = tuple(x//(2*2) for x in (self.start_img_shape[:-1]))
+        for i in range(self.dims):
+            units = units * hidden_shape[i]
+        unints = units * channels   # channles не используется!
+
+        hidden_shape = list(hidden_shape)
+        hidden_shape.append(64)
+        hidden_shape = tuple(hidden_shape)
+
+        g = Dense(units)(combined)
+        g = Reshape(hidden_shape)(g)
+  
+        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        g = UpSampling2D()(g)
+        g = self.upsample()(g)
+
+        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = BatchNormalization()(g)
+        g = ReLU()(g)
+        g = self.upsample()(g)
     
-        g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         img = Activation('tanh')(g)
 
         return Model(inputs = [input_Z, input_C], outputs = img)
 
 class Discriminator(Model):
     def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
+
         if outputs == None:
             self.alpha = 0.2
             self.droprate = droprate
@@ -183,6 +207,15 @@ class WGAN(Model):
 
 class Critic(Model):
     def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
+
+        self.dims = len(img_shape) - 1
+        if self.dims == 3:
+            self.conv = Conv3D
+            self.pool = AveragePooling3D
+        elif self.dims == 2:
+            self.conv = Conv2D
+            self.pool = AveragePooling2D
+
         if outputs == None:
             self.alpha = 0.2
             self.droprate = droprate
@@ -199,21 +232,21 @@ class Critic(Model):
         input_img = Input(shape = img_shape)
         input_C = Input(shape=(1,), name='Input_C')
     
-        #d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
+        #d = conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
-        d = Conv2D(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init, kernel_constraint=constraint)(input_img)
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init, kernel_constraint=constraint)(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         #d = Dropout(rate = self.droprate)(d)
-        d = AveragePooling2D()(d)
+        d = self.pool()(d)
 
-        d = Conv2D(64, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init, kernel_constraint=constraint)(d)
+        d = self.conv(64, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init, kernel_constraint=constraint)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         #d = Dropout(rate = self.droprate)(d)
-        d = AveragePooling2D()(d)
+        d = self.pool()(d)
     
         d = Flatten()(d)
 

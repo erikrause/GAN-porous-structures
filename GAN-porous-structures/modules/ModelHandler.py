@@ -19,6 +19,7 @@ class ModelHandler():
         directory = directory + 'output/'
         self.directory = directory + 'History'
         self.samples_dir = directory + 'samples'
+        self.dims = len(start_shape) - 1
         # Models initialize:
         self.models = dict()
         self.n_blocks = n_blocks
@@ -179,7 +180,7 @@ class ModelHandler():
                 gen_last = self.models[base_models.Generator][start_shape][0]
                 base_model = model(gen_last, dis_last)
             elif model == base_models.Generator:
-                base_model = model(z_dim)
+                base_model = model(z_dim, start_img_shape=start_shape)
             elif model == base_models.Critic:
                 base_model = model(img_shape = start_shape)
 
@@ -384,10 +385,13 @@ class ModelHandler():
         wgan_model = models[2]
 
         c_model.summary()
-        plot_model(c_model, to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self))
+        plot_model(c_model, 
+                   to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self), 
+                   show_shapes=True)
         g_model.summary()
-        plot_model(g_model, to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self))
-        tf.global_variables_initializer()
+        plot_model(g_model, 
+                   to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self), 
+                   show_shapes=True)
         alpha = -1
         # Labels for real/fake imgs
         fake = np.ones((batch_size, 1))

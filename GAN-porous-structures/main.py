@@ -17,24 +17,12 @@ from modules.preprocess import DataLoader
 from modules.ModelHandler import ModelHandler
 import numpy as np
 
-# Start input image dimensions
+# Start input image resolution
 channels = 1
-start_shape = (16,16,channels)
+start_shape = (8,8,8,channels)
+z_dim = 100
+n_blocks = 5        # End_shape = start_shape*n_blocks
 
-#DIRECTORY = '/content/drive/My Drive/GAN/PGGANv5/beadpack'
-#DATASET_DIR = '/content/drive/My Drive/GAN/datasets/beadpack'
-
-# directory_name/ (слэш только в конце названия папки!).
-DIRECTORY = ''
-#DATASET_DIR = DIRECTORY + 'datasets/berea/{}.png'
-DATASET_DIR = 'datasets/beadpack/beadpack.tif' #DIRECTORY + 'datasets/beadpack/beadpack.tif'
-# Initialize dataset:
-data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=2, is_nearest_batch=True)
-
-# Size of the noise vector, used as input to the Generator
-z_dim = 200
-# Number of progressive resolution blocks:
-n_blocks = 4
 # Filters for each resolution block:
 n_filters = {1: 64,
              2: 32,
@@ -44,10 +32,23 @@ n_filters = {1: 64,
 filter_sizes = {1: 3,
                 2: 3,
                 3: 5,
-                4: 5}        
+                4: 5}      
+
+# 'directory_name/' (слэш только в конце названия папки!).
+DIRECTORY = ''
+#DATASET_DIR = 'datasets/berea/{}.png'  -   for png files iteration
+DATASET_DIR = 'datasets/beadpack/beadpack.tif'
+# Initialize dataset:
+
+img_dims = len(start_shape) - 1
+data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=True, dims=img_dims)
+  
+
 # Build a models (если модели и логи лежат в папке History, то будут загружены с диска):
 WEIGHTS_DIR = 'models-custom/'
 model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
+
+
 ######################################
 # MAIN LOOPv7
 ######################################
@@ -55,17 +56,7 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters
 batch_size = 16
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
-#n_fadein = np.array([0, 3000, 8000, 10000])
-#n_straight = np.array([1500, 8500, 2500, 2500])
-#n_fadein = np.array([0, 5000, 6000, 8000])
-#n_straight = np.array([12000, 12000, 6000, 25000])
 n_fadein = np.array([0, 2500, 2000, 2000, 2000])
 n_straight = np.array([4000-4000, 4000, 3000, 3000, 3000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
-
-#from keras.utils import plot_model
-#for i in range(0, 4):
-#    for j in range(0,2):
-#        plot_model(models.generators[i][j], to_file='E:/prob/generators-{}-{}.pdf'.format(i,j))
-#        plot_model(models.discriminators[i][j], to_file='E:/prob/discriminators-{}-{}.pdf'.format(i,j))

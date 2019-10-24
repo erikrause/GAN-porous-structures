@@ -137,17 +137,22 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
 def __add_generator_block(old_model, n_filters=64, filter_size=3):
     # get the end of the last block
     block_end = old_model.layers[-3].output
+    conv = old_model.conv
+    upsample = old_model.upsample
+
     # upsample, and define new block
-    upsampling = UpSampling2D()(block_end)
-    g = Conv2DTranspose(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(upsampling)
+    upsampling = upsample()(block_end)
+    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(upsampling)
     g = BatchNormalization()(g)
     g = ReLU()(g)
     
     # add new output layer
-    g = Conv2DTranspose(1, kernel_size=3, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    g = conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
     out_image = Activation('tanh')(g)
     # define model
-    straight_model = base_models.Generator(inputs=old_model.inputs, outputs=out_image)
+    straight_model = base_models.Generator(inputs=old_model.inputs,
+                                           start_img_shape=old_model.start_img_shape,
+                                           outputs=out_image)
     
     # get the output layer from old model
     out_old = old_model.layers[-2]#[-1]
@@ -157,7 +162,9 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     # define new output image as the weighted sum of the old and new models
     merged = WeightedSum()([out_image2, out_image])
     # define model
-    fadein_model = base_models.Generator(inputs=old_model.inputs, outputs=merged)
+    fadein_model = base_models.Generator(inputs=old_model.inputs,
+                                         start_img_shape=old_model.start_img_shape,
+                                         outputs=merged)
     return [straight_model, fadein_model]
 
 def __add_wgan_block(discriminators, generators):
@@ -169,15 +176,24 @@ def __add_wgan_block(discriminators, generators):
 def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3):
     #old_input_shape = list(old_model.input_shape) #get_input_shape_at(0)
     old_input_shape = list(old_model.get_input_shape_at(0))
-    input_img_shape = (old_input_shape[0][-2]*2, 
-                   old_input_shape[0][-2]*2, 
-                   old_input_shape[0][-1])
-    input_img = Input(shape=input_img_shape)
+    old_img_shape = old_input_shape[0][1:-1]
+    new_img_shape = tuple(2*x for x in old_img_shape)   #shape without channels
+    new_img_shape = list(new_img_shape)       
+    new_img_shape.append(1)                             #add chanel shape
+    new_img_shape = tuple(new_img_shape)   
+
+    #input_img_shape = (old_input_shape[0][-2]*2, 
+                   #old_input_shape[0][-2]*2, 
+                   #old_input_shape[0][-1])      # Need to refactor
+    input_img = Input(shape=new_img_shape)
+
+    conv = old_model.conv
+    pool = old_model.pool
     
     # New block/
     print(n_filters)
     
-    d = Conv2D(n_filters, 
+    d = conv(n_filters, 
                kernel_size=filter_size, 
                strides=1, 
                padding='same', 
@@ -186,11 +202,11 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.02)(d)
     #d = Dropout(rate = 0.2)(d)
-    d = AveragePooling2D()(d)   
+    d = pool()(d)   
 
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
     kernel_size_last = old_model.layers[1].kernel_size
-    d = Conv2D(n_filters_last,
+    d = conv(n_filters_last,
                kernel_size = kernel_size_last, 
                strides=1, padding='same', 
                kernel_initializer=base_models.weight_init,
@@ -198,7 +214,7 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.02)(d)
     #d = Dropout(rate = 0.2)(d)
-    d = AveragePooling2D()(d)   
+    d = pool()(d)   
     
     block_new = d
     #/New block
@@ -217,9 +233,11 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
 
         prob = current_layer.get_weights()
         
-    straight_model = base_models.Critic(inputs=[input_img, input_C], outputs=d) #base_models.Discriminator
+    straight_model = base_models.Critic(img_shape=new_img_shape,
+                                        inputs=[input_img, input_C], 
+                                        outputs=d)
 
-    downsample = AveragePooling2D()(input_img)
+    downsample = pool()(input_img)
     
     block_old = downsample
     for i in range(1, n_input_layers):
@@ -239,6 +257,8 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
         else:
             d = current_layer(d)
         
-    fadein_model = base_models.Critic(inputs=[input_img, input_C], outputs=d)
+    fadein_model = base_models.Critic(img_shape=new_img_shape, 
+                                      inputs=[input_img, input_C], 
+                                      outputs=d)
 
     return [straight_model, fadein_model]
