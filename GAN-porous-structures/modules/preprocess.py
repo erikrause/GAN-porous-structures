@@ -10,8 +10,7 @@ from keras.models import Model
 class DataLoader(object):
     def __init__(self, filename:str, resolution:tuple, is_tif = True, dims = 3, is_nearest_batch = False):
     
-        imageArray = np.empty((resolution[0],resolution[1],resolution[2]))
-        #self.count = count
+
         self.resolution = resolution
         self.dims = dims
 
@@ -52,7 +51,8 @@ class DataLoader(object):
 
         return images
 
-    def __get_data_from_pngs(count, filename):
+    def __get_data_from_pngs(self, count, filename):
+        imageArray = np.empty((self.resolution[0],self.resolution[1],self.resolution[2]))
         for i in range(0, count):
             filename = filename.format(i+1)
             image = Image.open(filename)

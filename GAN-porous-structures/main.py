@@ -18,7 +18,7 @@ import numpy as np
 
 # Start input image resolution
 channels = 1        # 1 - черно-белое изображение
-start_shape = (8,8,8,channels)
+start_shape = (8,8,channels)
 z_dim = 100         # Для сложных данных увеличить z_dim
 n_blocks = 5        # Количество повышений разрешения. End_shape = start_shape*n_blocks
 
