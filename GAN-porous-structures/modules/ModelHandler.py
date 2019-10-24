@@ -409,11 +409,11 @@ class ModelHandler():
         while self.iteration < iterations:
             start_time = time.time()
             if self.is_fadein:
-                prob1 = time.time()
+                #prob1 = time.time()
                 alpha = pggan.update_fadein([g_model, c_model, wgan_model], self.iteration, iterations)
-                prob2 = time.time() - prob1
+                #prob2 = time.time() - prob1
                 #pggan.update_fadein([g_model, c_model, wgan_model], 1, 2) 
-            print('fadein time: ', prob2)
+            #print('fadein time: ', prob2)
             # -------------------------
             #  Train the Critic
             # -------------------------
