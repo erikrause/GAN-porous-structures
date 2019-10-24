@@ -8,4 +8,5 @@ Versions:
 Use main to start training. After each sample_interval models_weights, logs and samples will be saved in DIRECTORY folder.
 
 If DIRECTORY contains logs and weights, model will continue training from the last checkpoint. 
+
 Logs files contains pickle objects with lists of logs.
