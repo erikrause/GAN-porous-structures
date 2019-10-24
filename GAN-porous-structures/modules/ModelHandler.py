@@ -352,7 +352,8 @@ class ModelHandler():
         plt.close(fig)
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
-  
+    
+        #self. model_iteration = 1 #debug
         while (self.model_iteration < self.n_blocks*2-1) or (self.model_iteration <= last_model):        # check end of loop
             i = self.model_iteration
             if (i % 2 == 0):    # if model is straight
@@ -448,17 +449,18 @@ class ModelHandler():
             #resolution = c_model.inputs[0].shape[1][1]
 
             downscale = self.end_shape[0] // resolution
-            # Get a random batch of real images
-            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
-            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
+            for i in range(0, 2):
+                # Get a random batch of real images
+                imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
+                imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
             
-            # Generate a batch of fake images
-            z = np.random.normal(0, 1, (batch_size, self.z_dim))
-            gen_imgs = g_model.predict([z, imgs_mean])
+                # Generate a batch of fake images
+                z = np.random.normal(0, 1, (batch_size, self.z_dim))
+                gen_imgs = g_model.predict([z, imgs_mean])
 
-            # Train Critic
-            self.d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size])
-            self.d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size])
+                # Train Critic
+                self.d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size])
+                self.d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size])
 
             ##############################
             # Clipping weights (WGAN) with plaidml backend (with tf cliping will be on kernel_konstraint in models builder).

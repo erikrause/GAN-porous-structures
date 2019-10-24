@@ -24,7 +24,7 @@ constraint = None
 clip_value = 0.01
 current_backend = backend.backend()
 
-opt = RMSprop(lr=0.001)    #from vanilla WGAN paper
+opt = RMSprop(lr=0.0001)    #from vanilla WGAN paper
 #opt = Adam(lr=0.001)        # from Progressive growing GAN paper
 weight_init = RandomNormal(stddev=0.02)
 
