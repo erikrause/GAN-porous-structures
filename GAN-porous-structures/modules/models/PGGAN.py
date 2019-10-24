@@ -141,10 +141,11 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     upsample = old_model.upsample
 
     # upsample, and define new block
-    upsampling = upsample()(block_end)
-    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(upsampling)
+    #upsampling = upsample()(block_end)
+    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(block_end)
     g = BatchNormalization()(g)
     g = ReLU()(g)
+    g = upsample()(g)
     
     # add new output layer
     g = conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
@@ -155,10 +156,10 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
                                            outputs=out_image)
     
     # get the output layer from old model
-    out_old = old_model.layers[-2]#[-1]
+    #out_old = old_model.layers[-2]#[-1]
     # connect the upsampling to the old output layer
-    out_old = out_old(upsampling)
-    out_image2 = old_model.layers[-1](out_old)
+    #out_old = out_old(upsampling)
+    out_image2 = upsample()(old_model.layers[-1].output)
     # define new output image as the weighted sum of the old and new models
     merged = WeightedSum()([out_image2, out_image])
     # define model
