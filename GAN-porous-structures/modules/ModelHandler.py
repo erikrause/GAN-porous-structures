@@ -351,7 +351,7 @@ class ModelHandler():
         fig.savefig(self.samples_dir + filename+' 2')
         plt.close(fig)
 
-    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
+    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999, batch_interval=100):
     
         #self. model_iteration = 1 #debug
         while (self.model_iteration < self.n_blocks*2-1) or (self.model_iteration <= last_model):        # check end of loop
@@ -369,7 +369,7 @@ class ModelHandler():
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
             self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
           
-            self.train_block(iterations, batch_size, sample_interval, n_resolution)
+            self.train_block(iterations, batch_size, sample_interval, n_resolution, batch_interval)
 
             if not self.is_interrupt:
                 self.model_iteration += 1   
@@ -391,7 +391,7 @@ class ModelHandler():
     ##############
 
 
-    def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
+    def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int, batch_interval:int):
         # Get models for current resolution layer:
         int_fadein = int(self.is_fadein)
         is_straight = not self.is_fadein
@@ -431,8 +431,29 @@ class ModelHandler():
         self.is_interrupt = []
         self.input_string = ''
         thread.start_new_thread(self.input_thread, (self.is_interrupt,))
+        
+        downscale = self.end_shape[0] // resolution
+        data_size = 128 * (downscale)
+        self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
+
+        start_lr =  base_models.lr / self.model_iteration
+        backend.set_value(c_model.optimizer.lr, start_lr)
+        backend.set_value(wgan_model.optimizer.lr, start_lr)
 
         while self.iteration < iterations and not self.is_interrupt:
+            current_lr = backend.get_value(c_model.optimizer.lr)
+            remaining_lr = 0.000005 - current_lr
+            remaining_steps = iterations - self.iteration
+
+            if remaining_steps == 0:
+                lr = 1.0
+            else:
+                #alpha = step / float(n_steps - 1)
+                dlr = remaining_lr / remaining_steps
+                lr = current_lr + dlr
+            backend.set_value(c_model.optimizer.lr, lr)
+            backend.set_value(wgan_model.optimizer.lr, lr)
+
             start_time = time.time()
             if self.is_fadein:
                 #prob1 = time.time()
@@ -448,7 +469,6 @@ class ModelHandler():
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
             #resolution = c_model.inputs[0].shape[1][1]
 
-            downscale = self.end_shape[0] // resolution
             for i in range(0, 2):
                 # Get a random batch of real images
                 imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
@@ -512,6 +532,10 @@ class ModelHandler():
                 # Get alpha for debug:
                 self.__get_alpha(c_model)
 
+            if (self.iteration) % batch_interval == 0:
+                prob = time.time()
+                self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
+                print('update batch time: ', time.time() - prob)
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
 
