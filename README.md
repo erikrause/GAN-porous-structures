@@ -10,3 +10,5 @@ Use main to start training. After each sample_interval models_weights, logs and 
 If DIRECTORY contains logs and weights, model will continue training from the last checkpoint. 
 
 Logs files contains pickle objects with lists of logs.
+
+While training press any key to safely break loop 
