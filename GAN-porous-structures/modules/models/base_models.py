@@ -78,9 +78,9 @@ class Generator(Model):
     def __build(self, z_dim):
   
         input_Z = Input(shape=(z_dim,))
-        input_C = Input(shape=(1,))
+        #input_C = Input(shape=(1,))
 
-        combined = Concatenate()([input_Z, input_C])
+        #combined = Concatenate()([input_Z, input_C])
 
         units = 32
         channels = self.start_img_shape[-1]   #?
@@ -93,7 +93,7 @@ class Generator(Model):
         hidden_shape.append(32)
         hidden_shape = tuple(hidden_shape)
 
-        g = Dense(units)(combined)
+        g = Dense(units)(input_Z)
         g = Reshape(hidden_shape)(g)
   
         g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
@@ -109,7 +109,7 @@ class Generator(Model):
         g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         img = Activation('tanh')(g)
 
-        return Model(inputs = [input_Z, input_C], outputs = img)
+        return Model(inputs = input_Z, outputs = img)
 
 class Discriminator(Model):
     def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
@@ -129,7 +129,7 @@ class Discriminator(Model):
     def __build(self, img_shape:tuple):
 
         input_img = Input(shape = img_shape)
-        input_C = Input(shape=(1,), name='Input_C')
+        #input_C = Input(shape=(1,), name='Input_C')
     
         #d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
         #d = LeakyReLU(alpha = self.alpha)(d) 
@@ -149,9 +149,9 @@ class Discriminator(Model):
     
         d = Flatten()(d)
 
-        combined = Concatenate(name='Concat_input_C')([d, input_C])    
+        #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(64, kernel_initializer = weight_init)(combined)
+        d = Dense(64, kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = ReLU()(d)
         d = Dropout(rate = self.droprate)(d)
@@ -159,7 +159,7 @@ class Discriminator(Model):
         d = Dense(1, activation='sigmoid')(d)
 
 
-        model = Model(inputs=[input_img, input_C], outputs=d)
+        model = Model(inputs=input_img, outputs=d)
     
         return model
 
@@ -201,7 +201,7 @@ class WGAN(Model):
         img = generator(generator.inputs)#generator([input_Z, input_C])
     
         # Combined Generator -> Discriminator model
-        classification = discriminator([img, generator.inputs[1]])
+        classification = discriminator(img)
     
         model = Model(generator.inputs, classification)
 
@@ -232,7 +232,7 @@ class Critic(Model):
     def __build(self, img_shape:tuple):
 
         input_img = Input(shape = img_shape)
-        input_C = Input(shape=(1,), name='Input_C')
+        #input_C = Input(shape=(1,), name='Input_C')
     
         #d = conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
         #d = LeakyReLU(alpha = self.alpha)(d) 
@@ -252,9 +252,9 @@ class Critic(Model):
     
         d = Flatten()(d)
 
-        combined = Concatenate(name='Concat_input_C')([d, input_C])    
+        #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(128, kernel_initializer = weight_init, name='dense', kernel_constraint=constraint)(combined)
+        d = Dense(128, kernel_initializer = weight_init, name='dense', kernel_constraint=constraint)(d)
         d = BatchNormalization()(d)
         d = ReLU()(d)
         #d = Dropout(rate = self.droprate)(d)
@@ -262,7 +262,7 @@ class Critic(Model):
         d = Dense(1, activation='linear', kernel_constraint=constraint)(d)      #нужен ли constraint для Dense?
 
 
-        model = Model(inputs=[input_img, input_C], outputs=d)
+        model = Model(inputs=input_img, outputs=d)
     
         return model
 

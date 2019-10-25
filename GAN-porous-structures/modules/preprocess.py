@@ -46,17 +46,17 @@ class DataLoader(object):
                                          value[1]:value[1] + resolution[1]])
             if len(tmp) > 128:
               tmp = np.asarray(tmp)
-              tmp = np.expand_dims(tmp, axis=-1)
+              #tmp = np.expand_dims(tmp, axis=-1)
               tmp = self.downsample_network.calculate(tmp, downscale)
               images.extend(tmp)
               tmp = []
         tmp = np.asarray(tmp)
-        tmp = np.expand_dims(tmp, axis=-1)
+        #tmp = np.expand_dims(tmp, axis=-1)
         tmp = self.downsample_network.calculate(tmp, downscale)
         images.extend(tmp)
         #self.debug(images[i,:,:])
         images = np.asarray(images)
-        #images = np.expand_dims(images, axis=-1)
+        images = np.expand_dims(images, axis=-1)
 
         #images = self.downsample_network.calculate(images, downscale)
         images = images / 127.5 - 1.0
@@ -69,6 +69,35 @@ class DataLoader(object):
           i = random.randint(0, len(self.batch))
           imgs.append(self.batch[i])
         return imgs
+
+    def get_batch(self, batch_size:int, resolution:tuple, downscale:int):
+  
+        images = []
+        for i in range(0, batch_size):
+            value = []
+            for axis in range(0, len(resolution)):
+                value.append(random.randint(0, self.resolution[axis]- 1 - resolution[axis]))
+                #z_value = random.randint(0, self.resolution[0]- 1 - resolution[0])
+                #x_value = random.randint(0, self.resolution[1] - 1 - resolution[1])
+                #y_value = random.randint(0, self.resolution[2] - 1 - resolution[2])
+
+            if self.dims == 3:
+                #images = np.empty((batch_size, resolution[0],resolution[1],resolution[2]))
+                images.append(self.dataset[value[0]:value[0] + resolution[0],
+                                             value[1]:value[1] + resolution[1], 
+                                             value[2]:value[2] + resolution[2]])
+            elif self.dims == 2:
+                image_number = random.randint(0, self.resolution[0])
+                images.append(self.dataset[image_number,
+                                         value[0]:value[0] + resolution[0], 
+                                         value[1]:value[1] + resolution[1]])
+                #self.debug(images[i,:,:])
+        images = np.asarray(images)
+        images = np.expand_dims(images, axis=-1)
+        images = self.downsample_network.calculate(images, downscale)
+        images = images / 127.5 - 1.0
+
+        return images
 
     def __get_data_from_pngs(self, count, filename):
         imageArray = np.empty((self.resolution[0],self.resolution[1],self.resolution[2]))

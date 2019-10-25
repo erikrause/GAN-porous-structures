@@ -307,7 +307,7 @@ class ModelHandler():
             z = np.random.normal(0, 1, (n_imgs, self.z_dim))
             imgs_mean = np.random.random((n_imgs, 1))*2 - 1
             ax=(1,2)
-        gen_imgs = generator.predict([z, imgs_mean])
+        gen_imgs = generator.predict(z)
         rm = np.mean(gen_imgs, axis=ax)
         gen_imgs = (gen_imgs+1)*127.5
         gen_imgs = gen_imgs.astype('uint8')
@@ -448,7 +448,7 @@ class ModelHandler():
         
         downscale = self.end_shape[0] // resolution
         data_size = 128 * (downscale)
-        self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
+        #self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
 
         start_lr =  base_models.lr / ((self.model_iteration + 1) * 2)
         backend.set_value(c_model.optimizer.lr, start_lr)
@@ -491,11 +491,12 @@ class ModelHandler():
             
                 # Generate a batch of fake images
                 z = np.random.normal(0, 1, (batch_size, self.z_dim))
-                gen_imgs = g_model.predict([z, imgs_mean])
+                gen_imgs = g_model.predict(z)
 
                 # Train Critic
-                self.d_loss_real = c_model.train_on_batch([imgs, imgs_mean], real[:batch_size])
-                self.d_loss_fake = c_model.train_on_batch([gen_imgs, imgs_mean], fake[:batch_size])
+                self.d_loss_real = c_model.train_on_batch(imgs, real[:batch_size])
+                self.d_loss_fake = c_model.train_on_batch(gen_imgs, fake[:batch_size])
+                
 
             ##############################
             # Clipping weights (WGAN) with plaidml backend (with tf cliping will be on kernel_konstraint in models builder).
@@ -522,7 +523,7 @@ class ModelHandler():
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
 
             # Train Generator
-            self.g_loss = wgan_model.train_on_batch([z, imgs_mean], real)
+            self.g_loss = wgan_model.train_on_batch(z, real)
 
             if self.is_fadein:
                 lr = start_lr
@@ -561,10 +562,10 @@ class ModelHandler():
 
                 #print('update lr time: ', lr_time)
 
-            if (self.iteration) % batch_interval == 0:
-                prob = time.time()
-                self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
-                print('update batch time: ', time.time() - prob)
+            #if (self.iteration) % batch_interval == 0:
+                #prob = time.time()
+                #self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
+                #print('update batch time: ', time.time() - prob)
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
 

@@ -127,7 +127,7 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
         else:
             d = current_layer(d)
         
-    fadein_model = base_models.Discriminator(inputs=[input_img, input_C], outputs=d)
+    fadein_model = base_models.Discriminator(inputs=input_img, outputs=d)
     #fadein_model.compile(loss='binary_crossentropy',
     #                  optimizer=Adam(),
     #                  metrics=['accuracy'])
@@ -178,7 +178,7 @@ def __add_wgan_block(discriminators, generators):
 def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3):
     #old_input_shape = list(old_model.input_shape) #get_input_shape_at(0)
     old_input_shape = list(old_model.get_input_shape_at(0))
-    old_img_shape = old_input_shape[0][1:-1]
+    old_img_shape = old_input_shape[1:-1]
     new_img_shape = tuple(2*x for x in old_img_shape)   #shape without channels
     new_img_shape = list(new_img_shape)       
     new_img_shape.append(1)                             #add chanel shape
@@ -236,7 +236,7 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
         prob = current_layer.get_weights()
         
     straight_model = base_models.Critic(img_shape=new_img_shape,
-                                        inputs=[input_img, input_C], 
+                                        inputs=input_img, 
                                         outputs=d)
 
     downsample = pool()(input_img)
@@ -260,7 +260,7 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
             d = current_layer(d)
         
     fadein_model = base_models.Critic(img_shape=new_img_shape, 
-                                      inputs=[input_img, input_C], 
+                                      inputs=input_img, 
                                       outputs=d)
 
     return [straight_model, fadein_model]
