@@ -486,7 +486,7 @@ class ModelHandler():
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
             #resolution = d_model.inputs[0].shape[1][1]
 
-            for i in range(0, 5):
+            for i in range(0, 1):
                 # Get a random batch of real images
                 imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
                 imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
