@@ -140,6 +140,7 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     conv = old_model.conv
     upsample = old_model.upsample
 
+    n_filters = n_filters // 2
     # upsample, and define new block
     #upsampling = upsample()(block_end)
     g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(block_end)

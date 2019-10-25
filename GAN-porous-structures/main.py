@@ -24,7 +24,7 @@ n_blocks = 4        # Количество повышений разрешени
 is_nearest = False   #
 
 # Filters for each resolution block (from hidden layers to end resolution layers):
-n_filters = {1: 32,
+n_filters = {1: 16,
              2: 16,
              3: 8,
              4: 4}    
@@ -55,7 +55,7 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters
 batch_size = 64
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
-n_fadein = np.array([0, 2500, 4000, 4000, 2000])
-n_straight = np.array([2000-900, 4000, 3000, 3000, 3000])
+n_fadein = np.array([0, 3000, 4000, 4000, 2000])
+n_straight = np.array([5000, 5000, 3000, 3000, 3000])
 
-model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
+model_handler.train(n_straight, n_fadein, batch_size, sample_interval, batch_interval=1000)

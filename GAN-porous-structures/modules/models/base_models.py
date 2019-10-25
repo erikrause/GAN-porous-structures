@@ -82,7 +82,7 @@ class Generator(Model):
 
         combined = Concatenate()([input_Z, input_C])
 
-        units = 64
+        units = 32
         channels = self.start_img_shape[-1]   #?
         hidden_shape = tuple(x//(2*2) for x in (self.start_img_shape[:-1]))
         for i in range(self.dims):
@@ -90,18 +90,18 @@ class Generator(Model):
         unints = units * channels   # channles не используется!
 
         hidden_shape = list(hidden_shape)
-        hidden_shape.append(64)
+        hidden_shape.append(32)
         hidden_shape = tuple(hidden_shape)
 
         g = Dense(units)(combined)
         g = Reshape(hidden_shape)(g)
   
-        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
         g = self.upsample()(g)
 
-        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(16, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
         g = self.upsample()(g)

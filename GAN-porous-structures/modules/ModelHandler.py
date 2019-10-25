@@ -14,7 +14,21 @@ from typing import Dict, Tuple  # попробовать позже (стати�
 import os.path
 import _thread as thread
 
+class PolynomialDecay():
+	def __init__(self, maxEpochs=100, initAlpha=0.01, power=1.0):
+		# store the maximum number of epochs, base learning rate,
+		# and power of the polynomial
+		self.maxEpochs = maxEpochs
+		self.initAlpha = initAlpha
+		self.power = power
 
+	def __call__(self, epoch):
+		# compute the new learning rate based on polynomial decay
+		decay = (1 - (epoch / float(self.maxEpochs))) ** self.power
+		alpha = self.initAlpha * decay
+
+		# return the new learning rate
+		return float(alpha)
 
 class ModelHandler():
     def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader, weights_dir=''):     #, discriminators, generators, gans):
@@ -375,14 +389,14 @@ class ModelHandler():
                 self.model_iteration += 1   
                 self.iteration = 0
             else:
-                #input_string = self.input_string
-                #print('Change total iterations for {} model, or print Enter to exit: '.format(self.model_iteration))
-                #input_string = input()
-                #if input_string.startswith('-') and input_string[1:].isdigit():
-                    #di = int(input_string)
-                    #self.iterations = input_string + di
-                #else:
-                break
+                input_string = self.input_string
+                print('Change total iterations for {} model, or print Enter to exit: '.format(self.model_iteration))
+                input_string = input()
+                if input_string.startswith('-') and input_string[1:].isdigit():
+                    di = int(input_string)
+                    self.iterations = input_string + di
+                else:
+                    break
     
     # Thread for interrupt train loop with keyboard: 
     def input_thread(self, is_interrupt):
@@ -436,24 +450,25 @@ class ModelHandler():
         data_size = 128 * (downscale)
         self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
 
-        start_lr =  base_models.lr / self.model_iteration
+        start_lr =  base_models.lr / ((self.model_iteration + 1) * 2)
         backend.set_value(c_model.optimizer.lr, start_lr)
         backend.set_value(wgan_model.optimizer.lr, start_lr)
 
         while self.iteration < iterations and not self.is_interrupt:
-            current_lr = backend.get_value(c_model.optimizer.lr)
-            remaining_lr = 0.000005 - current_lr
-            remaining_steps = iterations - self.iteration
+            
+            #current_lr = backend.get_value(c_model.optimizer.lr)
+            #remaining_lr = 0.0000005 / (self.model_iteration + 1) - current_lr
+            #remaining_steps = iterations - self.iteration
 
-            if remaining_steps == 0:
-                lr = 1.0
-            else:
+            #if remaining_steps == 0:
+            #    lr = 1.0
+            #else:
                 #alpha = step / float(n_steps - 1)
-                dlr = remaining_lr / remaining_steps
-                lr = current_lr + dlr
-            backend.set_value(c_model.optimizer.lr, lr)
-            backend.set_value(wgan_model.optimizer.lr, lr)
-
+            #    dlr = remaining_lr / remaining_steps
+            #    lr = current_lr + dlr
+            # Another:
+            #lr = start_lr / (1 + 0.000005 * self.iteration)
+            
             start_time = time.time()
             if self.is_fadein:
                 #prob1 = time.time()
@@ -508,11 +523,23 @@ class ModelHandler():
 
             # Train Generator
             self.g_loss = wgan_model.train_on_batch([z, imgs_mean], real)
+
+            if self.is_fadein:
+                lr = start_lr
+            else:
+                decay = (1 - (self.iteration / iterations)) ** 5
+                lr = start_lr * decay +  + 0.0000085
+            prob = time.time()
+            backend.set_value(c_model.optimizer.lr, lr)
+            backend.set_value(wgan_model.optimizer.lr, lr)
+            lr_time = time.time() - prob
+
             
             end_time = time.time()
             iteration_time = end_time - start_time
         
             self.iteration += 1
+
 
             if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
@@ -531,6 +558,8 @@ class ModelHandler():
                 #sample_images(generator)
                 # Get alpha for debug:
                 self.__get_alpha(c_model)
+
+                #print('update lr time: ', lr_time)
 
             if (self.iteration) % batch_interval == 0:
                 prob = time.time()
