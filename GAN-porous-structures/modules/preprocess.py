@@ -9,6 +9,8 @@ from keras.models import Model
 
 import math
 
+import sys, gc
+
 class DataLoader(object):
     def __init__(self, filename:str, resolution:tuple, n_blocks:int, is_tif = True, dims = 3, is_nearest_batch = False):
     
@@ -31,6 +33,13 @@ class DataLoader(object):
 
         for i in range(1,n_blocks):
             self.datasets.append(self.downsample_network.calculate(self.datasets[-1], 2))
+
+        #print('Size1: ', sys.getsizeof(self.dataset))
+        #print('Size list1: ', sys.getsizeof(self.datasets[0]))
+        #del self.dataset
+        #gc.collect()
+        #print('Size2: ', sys.getsizeof(self.dataset))
+        #print('Size list2: ', sys.getsizeof(self.datasets[0]))
     
     def get_batch(self, batch_size:int, resolution:tuple, downscale:int):
 

@@ -42,7 +42,7 @@ is_tif = True      # Change to false for downloading .png files
 
 # Initialize dataset:
 img_dims = len(start_shape) - 1
-data_loader = DataLoader(DATASET_DIR, (500, 500, 500), n_blocks, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
+data_loader = DataLoader(DATASET_DIR, (500, 500, 500), n_blocks - 2, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
 
 # Build a models (если логи лежат в папке History, то веса моделей будут загружены с папки History/models_wetights):
 WEIGHTS_DIR = 'models-custom/'
@@ -52,7 +52,7 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters,
 # MAIN LOOP
 ######################################
 
-batch_size = 8
+batch_size = 64
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 n_fadein = np.array([0, 2500, 3000, 4000, 4000])

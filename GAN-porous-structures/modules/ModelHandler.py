@@ -527,6 +527,8 @@ class ModelHandler():
             # Train Generator
             self.g_loss = gan_model.train_on_batch(z, real)
 
+            ###########################
+            learning rate interpolation:
             if self.is_fadein:
                 lr = start_lr/1.1
             else:
@@ -536,6 +538,7 @@ class ModelHandler():
             backend.set_value(d_model.optimizer.lr, lr)
             backend.set_value(gan_model.optimizer.lr, lr)
             lr_time = time.time() - prob
+            ############################
 
             
             end_time = time.time()
