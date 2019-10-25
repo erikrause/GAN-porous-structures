@@ -448,7 +448,7 @@ class ModelHandler():
         
         downscale = self.end_shape[0] // resolution
         data_size = 128 * (downscale)
-        #self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
+        self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
 
         start_lr =  base_models.lr / ((self.model_iteration + 1) * 2)
         backend.set_value(c_model.optimizer.lr, start_lr)
@@ -529,7 +529,7 @@ class ModelHandler():
                 lr = start_lr
             else:
                 decay = (1 - (self.iteration / iterations)) ** 5
-                lr = start_lr * decay +  + 0.0000085
+                lr = start_lr * decay +  + 0.00001
             prob = time.time()
             backend.set_value(c_model.optimizer.lr, lr)
             backend.set_value(wgan_model.optimizer.lr, lr)
@@ -562,10 +562,10 @@ class ModelHandler():
 
                 #print('update lr time: ', lr_time)
 
-            #if (self.iteration) % batch_interval == 0:
-                #prob = time.time()
-                #self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
-                #print('update batch time: ', time.time() - prob)
+            if (self.iteration) % batch_interval == 0:
+                prob = time.time()
+                self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
+                print('update batch time: ', time.time() - prob)
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
 
