@@ -42,7 +42,7 @@ is_tif = True      # Change to false for downloading .png files
 
 # Initialize dataset:
 img_dims = len(start_shape) - 1
-data_loader = DataLoader(DATASET_DIR, (500, 500, 500), n_blocks - 2, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
+data_loader = DataLoader(DATASET_DIR, (500, 500, 500), n_blocks, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
 
 # Build a models (если логи лежат в папке History, то веса моделей будут загружены с папки History/models_wetights):
 WEIGHTS_DIR = 'models-custom/'
