@@ -45,16 +45,16 @@ def update_fadein(models, step, n_steps, alpha = -1):
                 backend.set_value(layer.alpha, alpha)
     return alpha
 
-def add_block(old_model, n_input_layers=5, n_filters=64, filter_size=3):
+def add_block(old_model, n_filters=64, filter_size=3):
     models = []
-    if isinstance(old_model, base_models.Critic):
-        models = __add_critic_block(old_model, n_input_layers, n_filters, filter_size)
+    if isinstance(old_model, base_models.Discriminator):
+        models = __add_discriminator_block(old_model, n_filters, filter_size)
     elif isinstance(old_model, base_models.Generator):
         models = __add_generator_block(old_model, n_filters, filter_size)
     elif isinstance(old_model, list):
         discriminators = old_model[0]
         generators = old_model[1]
-        models = __add_wgan_block(discriminators, generators)
+        models = __add_gan_block(discriminators, generators)
 
     return models
 
@@ -169,9 +169,9 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
                                          outputs=merged)
     return [straight_model, fadein_model]
 
-def __add_wgan_block(discriminators, generators):
-    fadein_model = base_models.WGAN(generators[1], discriminators[1])
-    straight_model = base_models.WGAN(generators[0], discriminators[0])
+def __add_gan_block(discriminators, generators):
+    fadein_model = base_models.GAN(generators[1], discriminators[1])
+    straight_model = base_models.GAN(generators[0], discriminators[0])
     
     return [straight_model, fadein_model]
 
@@ -260,6 +260,94 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
             d = current_layer(d)
         
     fadein_model = base_models.Critic(img_shape=new_img_shape, 
+                                      inputs=input_img, 
+                                      outputs=d)
+
+    return [straight_model, fadein_model]
+
+def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=6,):
+    #old_input_shape = list(old_model.input_shape) #get_input_shape_at(0)
+    old_input_shape = list(old_model.get_input_shape_at(0))
+    old_img_shape = old_input_shape[1:-1]
+    new_img_shape = tuple(2*x for x in old_img_shape)   #shape without channels
+    new_img_shape = list(new_img_shape)       
+    new_img_shape.append(1)                             #add chanel shape
+    new_img_shape = tuple(new_img_shape)   
+
+    #input_img_shape = (old_input_shape[0][-2]*2, 
+                   #old_input_shape[0][-2]*2, 
+                   #old_input_shape[0][-1])      # Need to refactor
+    input_img = Input(shape=new_img_shape)
+
+    conv = old_model.conv
+    pool = old_model.pool
+    
+    # New block/
+    print(n_filters)
+    
+    d = conv(n_filters, 
+               kernel_size=filter_size, 
+               strides=1, 
+               padding='same', 
+               kernel_initializer=base_models.weight_init)(input_img)
+    d = BatchNormalization()(d)
+    d = LeakyReLU(alpha=0.02)(d)
+    d = Dropout(rate = 0.2)(d)
+    d = pool()(d)   
+
+    n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
+    kernel_size_last = old_model.layers[1].kernel_size
+    d = conv(n_filters_last,
+               kernel_size = kernel_size_last, 
+               strides=1, padding='same', 
+               kernel_initializer=base_models.weight_init)(d)
+    d = BatchNormalization()(d)
+    d = LeakyReLU(alpha=0.02)(d)
+    d = Dropout(rate = 0.2)(d)
+    d = pool()(d)   
+    
+    block_new = d
+    #/New block
+    
+    for i in range(n_input_layers, len(old_model.layers)):
+        current_layer = old_model.layers[i]
+        print(current_layer)
+        if current_layer.name == 'Input_C':
+            input_C = current_layer.input
+            continue
+        elif current_layer.name == 'Concat_input_C':
+            d = current_layer([d, input_C])
+
+        else:
+            d = current_layer(d)
+
+        prob = current_layer.get_weights()
+        
+    straight_model = base_models.Discriminator(img_shape=new_img_shape,
+                                        inputs=input_img, 
+                                        outputs=d)
+
+    downsample = pool()(input_img)
+    
+    block_old = downsample
+    for i in range(1, n_input_layers):
+        block_old = old_model.layers[i](block_old)
+    
+    d = WeightedSum()([block_old, block_new])
+    
+    for i in range(n_input_layers, len(old_model.layers)):
+        current_layer = old_model.layers[i]
+        print(current_layer)
+        if current_layer.name == 'Input_C':
+            input_C = current_layer.input
+            continue
+        elif current_layer.name == 'Concat_input_C':
+            d = current_layer([d, input_C])
+
+        else:
+            d = current_layer(d)
+        
+    fadein_model = base_models.Discriminator(img_shape=new_img_shape, 
                                       inputs=input_img, 
                                       outputs=d)
 

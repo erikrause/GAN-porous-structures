@@ -26,8 +26,8 @@ clip_value = 0.01
 current_backend = backend.backend()
 
 lr = 0.001
-opt = RMSprop(lr=lr)    #from vanilla WGAN paper
-#opt = Adam(lr=0.001)        # from Progressive growing GAN paper
+#opt = RMSprop(lr=lr)    #from vanilla WGAN paper
+opt = Adam(lr=lr)        # from Progressive growing GAN paper
 weight_init = RandomNormal(stddev=0.02)
 
 # clip model weights to a given hypercube (vanilla WGAN)
@@ -111,57 +111,7 @@ class Generator(Model):
 
         return Model(inputs = input_Z, outputs = img)
 
-class Discriminator(Model):
-    def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
 
-        if outputs == None:
-            self.alpha = 0.2
-            self.droprate = droprate
-            model = self.__build(img_shape)
-            Model.__init__(self, model.inputs, model.outputs)
-        elif outputs != None:
-            Model.__init__(self, inputs, outputs)
-
-        self.compile(loss='binary_crossentropy',
-                      optimizer=Adam(),
-                      metrics=['accuracy'])
-
-    def __build(self, img_shape:tuple):
-
-        input_img = Input(shape = img_shape)
-        #input_C = Input(shape=(1,), name='Input_C')
-    
-        #d = Conv2D(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
-        #d = LeakyReLU(alpha = self.alpha)(d) 
-        #d = AveragePooling2D()(d)
-    
-        d = Conv2D(8, kernel_size=1, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
-        d = AveragePooling2D()(d)
-
-        d = Conv2D(16, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
-        d = AveragePooling2D()(d)
-    
-        d = Flatten()(d)
-
-        #combined = Concatenate(name='Concat_input_C')([d, input_C])    
-
-        d = Dense(64, kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = ReLU()(d)
-        d = Dropout(rate = self.droprate)(d)
-    
-        d = Dense(1, activation='sigmoid')(d)
-
-
-        model = Model(inputs=input_img, outputs=d)
-    
-        return model
 
 class GAN(Model):
     def __init__(self, generator, discriminator):
@@ -169,7 +119,7 @@ class GAN(Model):
         model = self.__build(generator, discriminator)
         Model.__init__(self, model.inputs, model.outputs)
         self.compile(loss='binary_crossentropy', 
-                     optimizer=Adam())
+                     optimizer=opt)
 
     def __build(self, generator, discriminator):
 
@@ -179,7 +129,7 @@ class GAN(Model):
         img = generator(generator.inputs)#generator([input_Z, input_C])
     
         # Combined Generator -> Discriminator model
-        classification = discriminator([img, generator.inputs[1]])
+        classification = discriminator(img)
     
         model = Model(generator.inputs, classification)
 
@@ -260,6 +210,66 @@ class Critic(Model):
         #d = Dropout(rate = self.droprate)(d)
     
         d = Dense(1, activation='linear', kernel_constraint=constraint)(d)      #нужен ли constraint для Dense?
+
+
+        model = Model(inputs=input_img, outputs=d)
+    
+        return model
+
+class Discriminator(Model):
+    def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
+
+        self.dims = len(img_shape) - 1
+        if self.dims == 3:
+            self.conv = Conv3D
+            self.pool = AveragePooling3D
+        elif self.dims == 2:
+            self.conv = Conv2D
+            self.pool = AveragePooling2D
+
+        if outputs == None:
+            self.alpha = 0.2
+            self.droprate = droprate
+            model = self.__build(img_shape)
+            Model.__init__(self, model.inputs, model.outputs)
+        elif outputs != None:
+            Model.__init__(self, inputs, outputs)
+
+        self.compile(loss='binary_crossentropy',
+                     metrics=['accuracy'],
+                     optimizer=opt)
+
+    def __build(self, img_shape:tuple):
+
+        input_img = Input(shape = img_shape)
+        #input_C = Input(shape=(1,), name='Input_C')
+    
+        #d = conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
+        #d = LeakyReLU(alpha = self.alpha)(d) 
+        #d = AveragePooling2D()(d)
+    
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
+        d = self.pool()(d)
+
+        d = self.conv(64, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init)(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
+        d = self.pool()(d)
+    
+        d = Flatten()(d)
+
+        #combined = Concatenate(name='Concat_input_C')([d, input_C])    
+
+        #d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
+        #d = BatchNormalization()(d)
+        #d = ReLU()(d)
+        #d = Dropout(rate = self.droprate)(d)
+    
+        d = Dense(1, activation='sigmoid')(d) 
 
 
         model = Model(inputs=input_img, outputs=d)
