@@ -20,7 +20,7 @@ import numpy as np
 channels = 1        # 1 - черно-белое изображение
 start_shape = (16,16,16,channels)
 z_dim = 100         # Для сложных данных увеличить z_dim
-n_blocks = 4        # Количество повышений разрешения. End_shape = start_shape*n_blocks
+n_blocks = 3        # Количество повышений разрешения. End_shape = start_shape*n_blocks
 is_nearest = False   #
 
 # Filters for each resolution block (from hidden layers to end resolution layers):
@@ -52,7 +52,7 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters,
 # MAIN LOOP
 ######################################
 
-batch_size = 64
+batch_size = 8
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 n_fadein = np.array([0, 2500, 3000, 4000, 4000])

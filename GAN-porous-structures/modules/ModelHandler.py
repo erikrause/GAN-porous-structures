@@ -280,6 +280,8 @@ class ModelHandler():
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
 
+        self.save_models()
+
     def save_models(self):  # NEED TO TEST
         tf.gfile.MkDir('{self.directory}/models/'.format(self=self))
         models_dir = '{self.directory}/models/'.format(self=self)

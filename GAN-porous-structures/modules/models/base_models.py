@@ -99,12 +99,12 @@ class Generator(Model):
         g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        g = self.upsample()(g)
+        #g = self.upsample()(g)
   
-        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        #g = self.upsample()(g)
+        g = self.upsample()(g)
 
         g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
@@ -222,7 +222,7 @@ class Critic(Model):
         return model
 
 class Discriminator(Model):
-    def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
+    def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.1):
 
         self.dims = len(img_shape) - 1
         if self.dims == 3:
