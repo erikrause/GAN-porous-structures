@@ -18,16 +18,16 @@ import numpy as np
 
 # Start input image resolution
 channels = 1        # 1 - черно-белое изображение
-start_shape = (16,16,channels)
+start_shape = (16,16,16,channels)
 z_dim = 100         # Для сложных данных увеличить z_dim
 n_blocks = 4        # Количество повышений разрешения. End_shape = start_shape*n_blocks
 is_nearest = False   #
 
 # Filters for each resolution block (from hidden layers to end resolution layers):
 n_filters = {1: 16,
-             2: 16,
-             3: 8,
-             4: 4}    
+             2: 8,
+             3: 4,
+             4: 2}    
 
 filter_sizes = {1: 3,
                 2: 3,
@@ -42,20 +42,20 @@ is_tif = True      # Change to false for downloading .png files
 
 # Initialize dataset:
 img_dims = len(start_shape) - 1
-data_loader = DataLoader(DATASET_DIR, (500, 500, 500), is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
-#data_loader.update_batch(64, start_shape[:-1], 8)
+data_loader = DataLoader(DATASET_DIR, (500, 500, 500), n_blocks, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
+imgs = data_loader.get_batch(64, start_shape[:-1], 8)
 # Build a models (если логи лежат в папке History, то веса моделей будут загружены с папки History/models_wetights):
 WEIGHTS_DIR = 'models-custom/'
-model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks,  n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
+model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
 
 ######################################
 # MAIN LOOP
 ######################################
 
-batch_size = 64
+batch_size = 32
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
-n_fadein = np.array([0, 1500, 1300, 2000, 2000])
-n_straight = np.array([1500, 2000, 3000, 6000, 6000])
+n_fadein = np.array([0, 4000, 3500+2000, 4000+2000, 4000])
+n_straight = np.array([3400+2500, 5000+2000, 4000+2000, 6000, 6000])
 
-model_handler.train(n_straight, n_fadein, batch_size, sample_interval, batch_interval=1000)
+model_handler.train(n_straight, n_fadein, batch_size, sample_interval, batch_interval=500)

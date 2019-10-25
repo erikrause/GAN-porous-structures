@@ -369,7 +369,7 @@ class ModelHandler():
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999, batch_interval=100):
     
-        #self. model_iteration = 1 #debug
+        #self. model_iteration = 0 #debug
         while (self.model_iteration < self.n_blocks*2-1) or (self.model_iteration <= last_model):        # check end of loop
             i = self.model_iteration
             if (i % 2 == 0):    # if model is straight
@@ -449,7 +449,7 @@ class ModelHandler():
         thread.start_new_thread(self.input_thread, (self.is_interrupt,))
         
         downscale = self.end_shape[0] // resolution
-        data_size = 128 * (downscale)
+        data_size = 128 * (downscale)//2
         self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
 
         start_lr =  base_models.lr / ((self.model_iteration + 1)/2)
@@ -550,7 +550,7 @@ class ModelHandler():
                 self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
                 self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein)
-                self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
+                #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
                 print("%d [D loss: %f, D acc: %.2f%%] [G loss: %f] [Time: %f.4]" %

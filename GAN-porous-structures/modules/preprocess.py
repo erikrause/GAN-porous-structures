@@ -10,8 +10,10 @@ import time
 
 from keras import backend
 
+import math
+
 class DataLoader(object):
-    def __init__(self, filename:str, resolution:tuple, is_tif = True, dims = 3, is_nearest_batch = False):
+    def __init__(self, filename:str, resolution:tuple, n_blocks:int, is_tif = True, dims = 3, is_nearest_batch = False):
     
 
         self.resolution = resolution
@@ -24,38 +26,54 @@ class DataLoader(object):
         
 
         self.downsample_network = DownSamplingNetwork(dims, is_nearest_batch)
-    
-    def update_batch(self, batch_size:int, resolution:tuple, downscale:int):
+        self.dataset = self.dataset[:496,:496,:496]
+        self.datasets = []
 
+        self.dataset = np.expand_dims(self.dataset, axis=0)
+        self.dataset = np.expand_dims(self.dataset, axis=-1)
+        self.datasets.append(self.dataset)
+
+        for i in range(1,n_blocks):
+            self.datasets.append(self.downsample_network.calculate(self.datasets[-1], 2))
+    
+    def get_batch(self, batch_size:int, resolution:tuple, downscale:int):
+
+        m = int(math.log(downscale, 2))
         images = []
-        tmp =[]
+        #tmp =[]
         for i in range(0, batch_size):
             value = []
             for axis in range(0, len(resolution)):
-                value.append(random.randint(0, self.resolution[axis]- 1 - resolution[axis]))
+                #value.append(random.randint(0, self.resolution[axis]- 1 - resolution[axis]))
+                value.append(random.randint(0, self.datasets[m].shape[axis+1]-1-(resolution[axis]//downscale)))
                 #z_value = random.randint(0, self.resolution[0]- 1 - resolution[0])
                 #x_value = random.randint(0, self.resolution[1] - 1 - resolution[1])
                 #y_value = random.randint(0, self.resolution[2] - 1 - resolution[2])
 
             if self.dims == 3:
-                tmp.append(self.dataset[value[0]:value[0] + resolution[0],
-                                             value[1]:value[1] + resolution[1], 
-                                             value[2]:value[2] + resolution[2]])
+                prob = self.datasets[m]
+                images.append(self.datasets[m][0, 
+                                               value[0]:value[0] + resolution[0]//downscale,
+                                               value[1]:value[1] + resolution[1]//downscale, 
+                                               value[2]:value[2] + resolution[2]//downscale,
+                                               0])
             elif self.dims == 2:
                 image_number = random.randint(0, self.resolution[0])
-                tmp.append(self.dataset[image_number,
-                                         value[0]:value[0] + resolution[0], 
-                                         value[1]:value[1] + resolution[1]])
-            if len(tmp) > 128:
-              tmp = np.asarray(tmp)
-              tmp = np.expand_dims(tmp, axis=-1)
-              tmp = self.downsample_network.calculate(tmp, downscale)
-              images.extend(tmp)
-              tmp = []
-        tmp = np.asarray(tmp)
-        tmp = np.expand_dims(tmp, axis=-1)
-        tmp = self.downsample_network.calculate(tmp, downscale)
-        images.extend(tmp)
+                images.append(self.datasets[m][0,
+                                               image_number,
+                                               value[0]:value[0] + resolution[0]//downscale, 
+                                               value[1]:value[1] + resolution[1]//downscale,
+                                               0])
+            #if len(tmp) > 128:
+            #  tmp = np.asarray(tmp)
+            #  tmp = np.expand_dims(tmp, axis=-1)
+            #  tmp = self.downsample_network.calculate(tmp, downscale)
+            #  images.extend(tmp)
+            #  tmp = []
+        #tmp = np.asarray(tmp)
+        #tmp = np.expand_dims(tmp, axis=-1)
+        #tmp = self.downsample_network.calculate(tmp, downscale)
+        #images.extend(tmp)
         #self.debug(images[i,:,:])
         images = np.asarray(images)
         #images = np.expand_dims(images, axis=-1)
@@ -65,13 +83,13 @@ class DataLoader(object):
 
         self.batch = images
 
-    def get_batch(self, batch_size:int, resolution:tuple, downscale:int):
-        imgs = []
-        for i in range(batch_size):
-          i = random.randint(0, len(self.batch))
-          imgs.append(self.batch[i])
-        imgs = np.asarray(imgs)
-        return imgs
+    #def get_batch(self, batch_size:int, resolution:tuple, downscale:int):
+    #    imgs = []
+    #    for i in range(batch_size):
+    #      i = random.randint(0, len(self.batch))
+    #      imgs.append(self.batch[i])
+    #    imgs = np.asarray(imgs)
+    #    return imgs
 
     
 
@@ -114,6 +132,7 @@ class DownSamplingNetwork():
         self.model = Model(inputs=voxel, outputs=x)
 
     def calculate(self, imgs, downscale):
+
         new_imgs = imgs
         i = 2
         while i <= downscale:
