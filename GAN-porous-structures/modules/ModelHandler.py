@@ -528,7 +528,7 @@ class ModelHandler():
             self.g_loss = gan_model.train_on_batch(z, real)
 
             ###########################
-            learning rate interpolation:
+            #learning rate interpolation:
             if self.is_fadein:
                 lr = start_lr/1.1
             else:
