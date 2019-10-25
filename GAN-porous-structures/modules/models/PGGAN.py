@@ -146,6 +146,11 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(block_end)
     g = BatchNormalization()(g)
     g = ReLU()(g)
+    #g = upsample()(g)
+
+    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    g = BatchNormalization()(g)
+    g = ReLU()(g)
     g = upsample()(g)
     
     # add new output layer
@@ -293,10 +298,22 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
     d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.02)(d)
     d = Dropout(rate = 0.2)(d)
-    d = pool()(d)   
+    d = pool()(d)
 
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
     kernel_size_last = old_model.layers[1].kernel_size
+
+    d = conv(n_filters_last, 
+               kernel_size=filter_size, 
+               strides=1, 
+               padding='same', 
+               kernel_initializer=base_models.weight_init)(d)
+    d = BatchNormalization()(d)
+    d = LeakyReLU(alpha=0.02)(d)
+    d = Dropout(rate = 0.2)(d)
+    #d = pool()(d)   
+
+    
     d = conv(n_filters_last,
                kernel_size = kernel_size_last, 
                strides=1, padding='same', 

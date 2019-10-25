@@ -52,7 +52,7 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters,
 # MAIN LOOP
 ######################################
 
-batch_size = 32
+batch_size = 16
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 n_fadein = np.array([0, 2500, 3000, 4000, 4000])

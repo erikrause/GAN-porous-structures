@@ -450,7 +450,7 @@ class ModelHandler():
         
         downscale = self.end_shape[0] // resolution
         data_size = 128 * (downscale)//2
-        self.data_loader.get_batch(data_size, self.end_shape[:-1], downscale)
+        #self.data_loader.get_batch(data_size, self.end_shape[:-1], downscale)
 
         start_lr =  base_models.lr / ((self.model_iteration + 1)/2)
         backend.set_value(d_model.optimizer.lr, start_lr)
@@ -486,7 +486,7 @@ class ModelHandler():
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
             #resolution = d_model.inputs[0].shape[1][1]
 
-            for i in range(0, 1):
+            for i in range(0, 5):
                 # Get a random batch of real images
                 imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
                 imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))

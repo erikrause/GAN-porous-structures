@@ -82,7 +82,7 @@ class Generator(Model):
 
         #combined = Concatenate()([input_Z, input_C])
 
-        units = 32
+        units = 64
         channels = self.start_img_shape[-1]   #?
         hidden_shape = tuple(x//(2*2) for x in (self.start_img_shape[:-1]))
         for i in range(self.dims):
@@ -90,18 +90,23 @@ class Generator(Model):
         unints = units * channels   # channles не используется!
 
         hidden_shape = list(hidden_shape)
-        hidden_shape.append(32)
+        hidden_shape.append(64)
         hidden_shape = tuple(hidden_shape)
 
         g = Dense(units)(input_Z)
         g = Reshape(hidden_shape)(g)
+
+        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = BatchNormalization()(g)
+        g = ReLU()(g)
+        g = self.upsample()(g)
   
         g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
-        g = self.upsample()(g)
+        #g = self.upsample()(g)
 
-        g = self.conv(16, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = ReLU()(g)
         g = self.upsample()(g)
@@ -254,7 +259,13 @@ class Discriminator(Model):
         d = Dropout(rate = self.droprate)(d)
         d = self.pool()(d)
 
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', name = 'conv', kernel_initializer = weight_init)(d)
+        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
+        #d = self.pool()(d)
+
+        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
@@ -264,10 +275,10 @@ class Discriminator(Model):
 
         #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        #d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
-        #d = BatchNormalization()(d)
-        #d = ReLU()(d)
-        #d = Dropout(rate = self.droprate)(d)
+        d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
+        d = BatchNormalization()(d)
+        d = ReLU()(d)
+        d = Dropout(rate = self.droprate)(d)
     
         d = Dense(1, activation='sigmoid')(d) 
 
