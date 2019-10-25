@@ -367,10 +367,10 @@ class ModelHandler():
         fig.savefig(self.samples_dir + filename+' 2')
         plt.close(fig)
 
-    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999, batch_interval=100):
+    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
     
         #self. model_iteration = 0 #debug
-        while (self.model_iteration < self.n_blocks*2-1) or (self.model_iteration <= last_model):        # check end of loop
+        while (self.model_iteration < self.n_blocks*2-1) or (self.model_iteration <= last_model):        # need to check end of loop
             i = self.model_iteration
             if (i % 2 == 0):    # if model is straight
                 self.is_fadein = False
@@ -385,7 +385,7 @@ class ModelHandler():
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
             self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
           
-            self.train_block(iterations, batch_size, sample_interval, n_resolution, batch_interval)
+            self.train_block(iterations, batch_size, sample_interval, n_resolution)
 
             if not self.is_interrupt:
                 self.model_iteration += 1   
@@ -407,7 +407,7 @@ class ModelHandler():
     ##############
 
 
-    def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int, batch_interval:int):
+    def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
         # Get models for current resolution layer:
         int_fadein = int(self.is_fadein)
         is_straight = not self.is_fadein
@@ -450,7 +450,7 @@ class ModelHandler():
         
         downscale = self.end_shape[0] // resolution
         data_size = 128 * (downscale)//2
-        self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
+        self.data_loader.get_batch(data_size, self.end_shape[:-1], downscale)
 
         start_lr =  base_models.lr / ((self.model_iteration + 1)/2)
         backend.set_value(d_model.optimizer.lr, start_lr)
@@ -564,10 +564,10 @@ class ModelHandler():
 
                 #print('update lr time: ', lr_time)
 
-            if (self.iteration) % batch_interval == 0:
-                prob = time.time()
-                self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
-                print('update batch time: ', time.time() - prob)
+            #if (self.iteration) % batch_interval == 0 & batch_interval > 0:
+                #prob = time.time()
+                #self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
+                #print('update batch time: ', time.time() - prob)
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
 

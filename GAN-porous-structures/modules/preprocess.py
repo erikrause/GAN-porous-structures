@@ -6,9 +6,6 @@ from skimage import io  # for tiff load
 from keras.layers import Input
 from keras.layers.convolutional import MaxPooling3D, AveragePooling3D, MaxPooling2D, AveragePooling2D
 from keras.models import Model
-import time
-
-from keras import backend
 
 import math
 
@@ -23,7 +20,6 @@ class DataLoader(object):
             self.dataset = self.__get_data_from_tif(filename)
         else:
             self.dataset = self.__get_data_from_pngs(resolution[0], filename)
-        
 
         self.downsample_network = DownSamplingNetwork(dims, is_nearest_batch)
         self.dataset = self.dataset[:496,:496,:496]
@@ -40,6 +36,7 @@ class DataLoader(object):
 
         m = int(math.log(downscale, 2))
         images = []
+        start_res = resolution[0] // downscale
         #tmp =[]
         for i in range(0, batch_size):
             value = []
@@ -51,18 +48,17 @@ class DataLoader(object):
                 #y_value = random.randint(0, self.resolution[2] - 1 - resolution[2])
 
             if self.dims == 3:
-                prob = self.datasets[m]
                 images.append(self.datasets[m][0, 
-                                               value[0]:value[0] + resolution[0]//downscale,
-                                               value[1]:value[1] + resolution[1]//downscale, 
-                                               value[2]:value[2] + resolution[2]//downscale,
+                                               value[0]:value[0] + resolution[axis]//downscale,
+                                               value[1]:value[1] + resolution[axis]//downscale, 
+                                               value[2]:value[2] + resolution[axis]//downscale,
                                                0])
             elif self.dims == 2:
                 image_number = random.randint(0, self.resolution[0])
                 images.append(self.datasets[m][0,
                                                image_number,
-                                               value[0]:value[0] + resolution[0]//downscale, 
-                                               value[1]:value[1] + resolution[1]//downscale,
+                                               value[0]:value[0] + resolution[axis]//downscale, 
+                                               value[1]:value[1] + resolution[axis]//downscale,
                                                0])
             #if len(tmp) > 128:
             #  tmp = np.asarray(tmp)
@@ -76,21 +72,12 @@ class DataLoader(object):
         #images.extend(tmp)
         #self.debug(images[i,:,:])
         images = np.asarray(images)
-        #images = np.expand_dims(images, axis=-1)
+        images = np.expand_dims(images, axis=-1)
 
         #images = self.downsample_network.calculate(images, downscale)
         images = images / 127.5 - 1.0
 
-        self.batch = images
-
-    #def get_batch(self, batch_size:int, resolution:tuple, downscale:int):
-    #    imgs = []
-    #    for i in range(batch_size):
-    #      i = random.randint(0, len(self.batch))
-    #      imgs.append(self.batch[i])
-    #    imgs = np.asarray(imgs)
-    #    return imgs
-
+        return images
     
 
     def __get_data_from_pngs(self, count, filename):

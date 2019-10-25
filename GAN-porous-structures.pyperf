@@ -4,5 +4,10 @@
     <TargetProject>65a5e4a4-41f8-4914-9b46-0b4c117fe5ae</TargetProject>
     <FriendlyName>GAN-porous-structures</FriendlyName>
   </ProjectTarget>
+  <Reports>
+    <Report>
+      <Filename>C:\Users\ZEK\AppData\Local\Temp\GAN-porous-structures_20191025.vsp</Filename>
+    </Report>
+  </Reports>
   <UseVTune>false</UseVTune>
 </ProfilingTarget>
