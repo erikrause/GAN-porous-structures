@@ -280,7 +280,7 @@ class ModelHandler():
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
 
-        self.save_models()
+        #self.save_models()
 
     def save_models(self):  # NEED TO TEST
         tf.gfile.MkDir('{self.directory}/models/'.format(self=self))
@@ -414,6 +414,7 @@ class ModelHandler():
         int_fadein = int(self.is_fadein)
         is_straight = not self.is_fadein
         int_straight = int(is_straight) # реверс
+        batch_size = batch_size // (n_resolution + 1)
 
         models = []
         for model in [base_models.Discriminator, base_models.Generator,base_models.GAN]:
@@ -459,6 +460,19 @@ class ModelHandler():
         backend.set_value(gan_model.optimizer.lr, start_lr)
 
         while self.iteration < iterations and not self.is_interrupt:
+            
+            ###########################
+            #learning rate interpolation:
+            if self.is_fadein:
+                lr = start_lr/1.1
+            else:
+                decay = (1 - (self.iteration / iterations)) ** (iterations//1000//5) #23
+                lr = start_lr * decay + 0.0000001
+            prob = time.time()
+            backend.set_value(d_model.optimizer.lr, lr)
+            backend.set_value(gan_model.optimizer.lr, lr)
+            lr_time = time.time() - prob
+            ############################
             
             #current_lr = backend.get_value(d_model.optimizer.lr)
             #remaining_lr = 0.0000005 / (self.model_iteration + 1) - current_lr
@@ -529,18 +543,6 @@ class ModelHandler():
             # Train Generator
             self.g_loss = gan_model.train_on_batch(z, real)
 
-            ###########################
-            #learning rate interpolation:
-            if self.is_fadein:
-                lr = start_lr/1.1
-            else:
-                decay = (1 - (self.iteration / iterations)) ** 5
-                lr = start_lr * decay +  + 0.0008
-            prob = time.time()
-            backend.set_value(d_model.optimizer.lr, lr)
-            backend.set_value(gan_model.optimizer.lr, lr)
-            lr_time = time.time() - prob
-            ############################
 
             
             end_time = time.time()
@@ -551,8 +553,11 @@ class ModelHandler():
 
             if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
+                save_time = time.time()
                 self.save_metrics()
+                print('save metrics time: ', time.time() - save_time)
                 self.save_models_weights()
+                print('save weights time: ', time.time() - save_time)
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
                 self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein)
                 #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
@@ -562,6 +567,7 @@ class ModelHandler():
                       (self.iteration, self.d_loss,  self.d_acc, self.g_loss, iteration_time))
                 print('Discriminator learning rate: ', backend.get_value(d_model.optimizer.lr))
                 print('GAN learning rate: ', backend.get_value(gan_model.optimizer.lr))
+                print('save time: ', time.time() - save_time)
                 # Output a sample of generated image
                 #sample_images(generator)
                 # Get alpha for debug:

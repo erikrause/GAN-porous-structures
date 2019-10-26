@@ -10,6 +10,7 @@ from keras.models import Model
 import math
 
 import sys, gc
+import h5py
 
 class DataLoader(object):
     def __init__(self, filename:str, resolution:tuple, n_blocks:int, is_tif = True, dims = 3, is_nearest_batch = False):
@@ -31,8 +32,10 @@ class DataLoader(object):
         self.dataset = np.expand_dims(self.dataset, axis=-1)
         self.datasets.append(self.dataset)
 
+        #h5py.File()
         for i in range(1,n_blocks):
             self.datasets.append(self.downsample_network.calculate(self.datasets[-1], 2))
+
 
         #print('Size1: ', sys.getsizeof(self.dataset))
         #print('Size list1: ', sys.getsizeof(self.datasets[0]))

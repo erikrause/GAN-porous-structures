@@ -82,6 +82,14 @@ class Generator(Model):
 
         #combined = Concatenate()([input_Z, input_C])
 
+        g = Dense(512, kernel_initializer = weight_init)(input_Z)
+        g = BatchNormalization()(g)
+        g = ReLU()(g)
+
+        #g = Dense(1024, kernel_initializer = weight_init)(g)
+        #g = BatchNormalization()(g)
+        #g = ReLU()(g)
+
         units = 64
         channels = self.start_img_shape[-1]   #?
         hidden_shape = tuple(x//(2*2) for x in (self.start_img_shape[:-1]))
@@ -93,7 +101,7 @@ class Generator(Model):
         hidden_shape.append(64)
         hidden_shape = tuple(hidden_shape)
 
-        g = Dense(units)(input_Z)
+        g = Dense(units)(g)
         g = Reshape(hidden_shape)(g)
 
         g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
@@ -253,7 +261,7 @@ class Discriminator(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
-        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = self.conv(32, kernel_size=1, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = Dropout(rate = self.droprate)(d)
@@ -273,11 +281,16 @@ class Discriminator(Model):
     
         d = Flatten()(d)
 
-        #combined = Concatenate(name='Concat_input_C')([d, input_C])    
+        #combined = Concatenate(name='Concat_input_C')([d, input_C])    p
+        
+        d = Dense(512, kernel_initializer = weight_init)(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = Dropout(rate = self.droprate)(d)
 
-        #d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
+        #d = Dense(1024, kernel_initializer = weight_init)(d)
         #d = BatchNormalization()(d)
-        #d = ReLU()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
         #d = Dropout(rate = self.droprate)(d)
     
         d = Dense(1, activation='sigmoid')(d) 
