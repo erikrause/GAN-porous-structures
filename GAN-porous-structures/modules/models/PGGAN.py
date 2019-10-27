@@ -58,100 +58,24 @@ def add_block(old_model, n_filters=64, filter_size=3):
 
     return models
 
-def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size):
-    old_input_shape = list(old_model.input_shape)
-    input_img_shape = (old_input_shape[0][-2]*2, 
-                   old_input_shape[0][-2]*2, 
-                   old_input_shape[0][-1])
-    input_img = Input(shape=input_img_shape)
-    
-    # New block/
-    print(n_filters)
-    
-    #d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
-    #d = LeakyReLU(alpha=0.01)(d)
-    #d = AveragePooling2D()(d)   
-
-    d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
-    d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.02)(d)
-    d = Dropout(rate = 0.2)(d)
-    d = AveragePooling2D()(d)   
-
-    n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
-    d = Conv2D(n_filters_last, kernel_size = filter_size, strides=1, padding='same')(d)
-    d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.02)(d)
-    d = Dropout(rate = 0.2)(d)
-    d = AveragePooling2D()(d)   
-    
-    block_new = d
-    #/New block
-    
-    for i in range(n_input_layers, len(old_model.layers)):
-        current_layer = old_model.layers[i]
-        print(current_layer)
-        if current_layer.name == 'Input_C':
-            input_C = current_layer.input
-            continue
-        elif current_layer.name == 'Concat_input_C':
-            d = current_layer([d, input_C])
-
-        else:
-            d = current_layer(d)
-
-        prob = current_layer.get_weights()
-        
-    straight_model = base_models.Discriminator(inputs=[input_img, input_C], outputs=d) #base_models.Discriminator
-    #straight_model.compile(loss='binary_crossentropy',
-    #                  optimizer=Adam(),
-    #                  metrics=['accuracy'])
-
-    downsample = AveragePooling2D()(input_img)
-    
-    block_old = downsample
-    for i in range(1, n_input_layers):
-        block_old = old_model.layers[i](block_old)
-    
-    d = WeightedSum()([block_old, block_new])
-    
-    for i in range(n_input_layers, len(old_model.layers)):
-        current_layer = old_model.layers[i]
-        print(current_layer)
-        if current_layer.name == 'Input_C':
-            input_C = current_layer.input
-            continue
-        elif current_layer.name == 'Concat_input_C':
-            d = current_layer([d, input_C])
-
-        else:
-            d = current_layer(d)
-        
-    fadein_model = base_models.Discriminator(inputs=input_img, outputs=d)
-    #fadein_model.compile(loss='binary_crossentropy',
-    #                  optimizer=Adam(),
-    #                  metrics=['accuracy'])
-
-    return [straight_model, fadein_model]
-
 def __add_generator_block(old_model, n_filters=64, filter_size=3):
     # get the end of the last block
     block_end = old_model.layers[-3].output
     conv = old_model.conv
     upsample = old_model.upsample
 
-    n_filters = n_filters // 2
+    n_filters = n_filters
     # upsample, and define new block
     #upsampling = upsample()(block_end)
     g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(block_end)
     g = BatchNormalization()(g)
     g = ReLU()(g)
-    #g = upsample()(g)
-
-    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
-    g = BatchNormalization()(g)
-    g = ReLU()(g)
     g = upsample()(g)
+
+    #g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    #g = BatchNormalization()(g)
+    #g = ReLU()(g)
+    #g = upsample()(g)
     
     # add new output layer
     g = conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
@@ -303,14 +227,14 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
     kernel_size_last = old_model.layers[1].kernel_size
 
-    d = conv(n_filters_last, 
-               kernel_size=filter_size, 
-               strides=1, 
-               padding='same', 
-               kernel_initializer=base_models.weight_init)(d)
-    d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.02)(d)
-    d = Dropout(rate = 0.2)(d)
+    #d = conv(n_filters_last, 
+    #           kernel_size=filter_size, 
+    #           strides=1, 
+    #           padding='same', 
+    #           kernel_initializer=base_models.weight_init)(d)
+    #d = BatchNormalization()(d)
+    #d = LeakyReLU(alpha=0.02)(d)
+    #d = Dropout(rate = 0.2)(d)
     #d = pool()(d)   
 
     

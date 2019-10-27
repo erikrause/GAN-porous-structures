@@ -20,6 +20,7 @@ global clip_value
 global opt
 global weight_init
 global lr
+global alpha
 
 constraint = None
 clip_value = 0.01
@@ -29,6 +30,7 @@ lr = 0.001
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
 opt = Adam(lr=lr)        # from Progressive growing GAN paper
 weight_init = RandomNormal(stddev=0.02)
+alpha = 0.2
 
 # clip model weights to a given hypercube (vanilla WGAN)
 class ClipConstraint(Constraint):
@@ -71,6 +73,7 @@ class Generator(Model):
 
         if outputs == None:
             model = self.__build(inputs)
+            self.alpha = 0.2
             Model.__init__(self, model.inputs, model.outputs)
         elif outputs != None:
             Model.__init__(self, inputs, outputs)
@@ -82,15 +85,16 @@ class Generator(Model):
 
         #combined = Concatenate()([input_Z, input_C])
 
-        g = Dense(512, kernel_initializer = weight_init)(input_Z)
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
+        #g = Dense(512, kernel_initializer = weight_init)(input_Z)
+        #g = BatchNormalization()(g)
+        #g = ReLU()(g)
 
         #g = Dense(1024, kernel_initializer = weight_init)(g)
         #g = BatchNormalization()(g)
         #g = ReLU()(g)
 
-        units = 64
+        start_units = 64
+        units = start_units
         channels = self.start_img_shape[-1]   #?
         hidden_shape = tuple(x//(2*2) for x in (self.start_img_shape[:-1]))
         for i in range(self.dims):
@@ -98,23 +102,22 @@ class Generator(Model):
         unints = units * channels   # channles не используется!
 
         hidden_shape = list(hidden_shape)
-        hidden_shape.append(64)
-        hidden_shape = tuple(hidden_shape)
+        hidden_shape.append(start_units)
+        hidden_shape = tuple(hidden_shape)  
 
-        g = Dense(units)(g)
+        g = Dense(units)(input_Z)
         g = Reshape(hidden_shape)(g)
 
-        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
-        #g = self.upsample()(g)
-  
-        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)        #64x4x4
         g = BatchNormalization()(g)
         g = ReLU()(g)
         g = self.upsample()(g)
 
-        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        #g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)        #32x8x8
+        #g = BatchNormalization()(g)
+        #g = ReLU()(g)
+
+        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)        #32x8x8
         g = BatchNormalization()(g)
         g = ReLU()(g)
         g = self.upsample()(g)
@@ -241,7 +244,6 @@ class Discriminator(Model):
             self.pool = AveragePooling2D
 
         if outputs == None:
-            self.alpha = 0.2
             self.droprate = droprate
             model = self.__build(img_shape)
             Model.__init__(self, model.inputs, model.outputs)
@@ -261,32 +263,31 @@ class Discriminator(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
-        d = self.conv(32, kernel_size=1, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)   #32x16x16
         d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
+        d = LeakyReLU(alpha = alpha)(d)
         d = Dropout(rate = self.droprate)(d)
         d = self.pool()(d)
 
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
-        #d = self.pool()(d)
+        #d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)      #64x8x8
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = alpha)(d)
+        #d = Dropout(rate = self.droprate)(d)
 
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)      #64x8x8
         d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
+        d = LeakyReLU(alpha = alpha)(d)
         d = Dropout(rate = self.droprate)(d)
         d = self.pool()(d)
     
         d = Flatten()(d)
 
-        #combined = Concatenate(name='Concat_input_C')([d, input_C])    p
+        #combined = Concatenate(name='Concat_input_C')([d, input_C])
         
-        d = Dense(512, kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Dense(256, kernel_initializer = weight_init)(d)
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
+        #d = Dropout(rate = self.droprate)(d)
 
         #d = Dense(1024, kernel_initializer = weight_init)(d)
         #d = BatchNormalization()(d)

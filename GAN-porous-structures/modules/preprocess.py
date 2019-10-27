@@ -24,8 +24,9 @@ class DataLoader(object):
         else:
             self.dataset = self.__get_data_from_pngs(resolution[0], filename)
 
-        self.downsample_network = DownSamplingNetwork(dims, is_nearest_batch)
-        self.dataset = self.dataset[:496,:496,:496]
+        self.downsample_network = DownSamplingNetwork(is_nearest_batch)
+        #self.dataset = self.dataset[:496,:496,:496]
+        self.dataset = self.dataset[:self.resolution[0], :self.resolution[1], :self.resolution[2]]
         self.datasets = []
 
         self.dataset = np.expand_dims(self.dataset, axis=0)
@@ -66,7 +67,7 @@ class DataLoader(object):
                                                value[2]:value[2] + resolution[axis]//downscale,
                                                0])
             elif self.dims == 2:
-                image_number = random.randint(0, self.resolution[0])
+                image_number = random.randint(0, self.resolution[0]//downscale)
                 images.append(self.datasets[m][0,
                                                image_number,
                                                value[0]:value[0] + resolution[axis]//downscale, 
@@ -109,24 +110,24 @@ class DataLoader(object):
 
 # Network, using for down sampling with linear? interpolation. (For nearest interpolation change AvgPool layer to MaxPool.
 class DownSamplingNetwork():
-    def __init__(self, dims, is_nearest=False):
+    def __init__(self, is_nearest=False):
         start_shape = [1]
-        for i in range(0, dims):
+        for i in range(0, 3):
             start_shape.insert(0, None)
         shape = list(start_shape)
         
         voxel = Input(shape=shape)
 
-        if dims == 3:
-            if is_nearest:
-                x = MaxPooling3D()(voxel)
-            else:
-                x = AveragePooling3D()(voxel)
-        elif dims == 2:
-            if is_nearest:
-                x = MaxPooling2D()(voxel)
-            else:
-                x = AveragePooling2D()(voxel)
+
+        if is_nearest:
+            x = MaxPooling3D()(voxel)
+        else:
+            x = AveragePooling3D()(voxel)
+        #elif dims == 2:
+            #if is_nearest:
+                #x = MaxPooling2D()(voxel)
+            #else:
+                #x = AveragePooling2D()(voxel)
 
         self.model = Model(inputs=voxel, outputs=x)
 

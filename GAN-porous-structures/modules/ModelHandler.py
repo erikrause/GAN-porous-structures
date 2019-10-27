@@ -400,6 +400,7 @@ class ModelHandler():
                     di = int(input_string)
                     self.iterations = input_string + di
                 else:
+                    self.save_models_weights()
                     break
     
     # Thread for interrupt train loop with keyboard: 
@@ -456,17 +457,18 @@ class ModelHandler():
         #self.data_loader.get_batch(data_size, self.end_shape[:-1], downscale)
 
         start_lr =  base_models.lr / ((self.model_iteration + 1)/2)
-        backend.set_value(d_model.optimizer.lr, start_lr)
-        backend.set_value(gan_model.optimizer.lr, start_lr)
+        #backend.set_value(d_model.optimizer.lr, start_lr)
+        #backend.set_value(gan_model.optimizer.lr, start_lr)
 
         while self.iteration < iterations and not self.is_interrupt:
             
             ###########################
             #learning rate interpolation:
             if self.is_fadein:
-                lr = start_lr/1.1
+                #lr = start_lr/1.1
+                lr = start_lr/2
             else:
-                decay = (1 - (self.iteration / iterations)) ** (iterations//1000//5) #23
+                decay = (1 - (self.iteration / 5000)) ** 5#(iterations//1000//5) #23
                 lr = start_lr * decay + 0.0000001
             prob = time.time()
             backend.set_value(d_model.optimizer.lr, lr)
@@ -501,19 +503,21 @@ class ModelHandler():
             #resolution = self.d_model.inputs[0].shape[2].value
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
             #resolution = d_model.inputs[0].shape[1][1]
-
-            for i in range(0, 1):
+            
+            #for i in range(0, 1):
                 # Get a random batch of real images
-                imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
-                imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
+            imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
+            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
             
                 # Generate a batch of fake images
-                z = np.random.normal(0, 1, (batch_size//2, self.z_dim))
-                gen_imgs = g_model.predict(z)
+            z = np.random.normal(0, 1, (batch_size//2, self.z_dim))
+            gen_imgs = g_model.predict(z)
 
                 # Train Discriminator
-                self.d_loss_real = d_model.train_on_batch(imgs, real[:batch_size//2])
-                self.d_loss_fake = d_model.train_on_batch(gen_imgs, fake[:batch_size//2])
+            self.d_loss_real = d_model.train_on_batch(imgs, real[:batch_size//2])
+            self.d_loss_fake = d_model.train_on_batch(gen_imgs, fake[:batch_size//2])
+            self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
+  
                 
 
             ##############################
@@ -527,7 +531,7 @@ class ModelHandler():
             #             backend.clip(tensor, -clip_val, clip_val)
             ###############################
 
-            self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
+            
             #self.d_loss_real = np.mean(self.d_loss_real)
             #self.d_loss_fake = np.mean(self.d_loss_fake)    
             
@@ -535,16 +539,13 @@ class ModelHandler():
             #  Train the Generator
             # ---------------------
 
-            # Generate a batch of fake images
-            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
-            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
-            z = np.random.normal(0, 1, (batch_size, self.z_dim))
-
             # Train Generator
+
+            #imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
+            #imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
+            z = np.random.normal(0, 1, (batch_size, self.z_dim))
             self.g_loss = gan_model.train_on_batch(z, real)
 
-
-            
             end_time = time.time()
             iteration_time = end_time - start_time
         
@@ -556,7 +557,7 @@ class ModelHandler():
                 save_time = time.time()
                 self.save_metrics()
                 print('save metrics time: ', time.time() - save_time)
-                self.save_models_weights()
+                #self.save_models_weights()
                 print('save weights time: ', time.time() - save_time)
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
                 self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein)
