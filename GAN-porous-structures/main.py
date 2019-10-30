@@ -18,7 +18,7 @@ import numpy as np
 
 # Start input image resolution
 channels = 1        # 1 - черно-белое изображение
-start_shape = (16,16,channels)
+start_shape = (16,16,16,channels)
 z_dim = 100         # Для сложных данных увеличить z_dim
 n_blocks = 4        # Количество повышений разрешения. End_shape = start_shape*n_blocks
 is_nearest = False   #
@@ -52,10 +52,10 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters,
 # MAIN LOOP
 ######################################
 
-batch_size = 32
+batch_size = 10
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
-n_fadein = np.array([0, 2500, 3000, 4000, 4000])
-n_straight = np.array([1500, 3000, 4000, 6000, 6000])
+n_fadein = np.array([0, 5000, 4000, 4000, 4000])
+n_straight = np.array([8000, 7000, 6000, 6000, 6000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)

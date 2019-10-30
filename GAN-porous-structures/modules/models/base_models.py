@@ -21,12 +21,14 @@ global opt
 global weight_init
 global lr
 global alpha
+global beta
 
 constraint = None
 clip_value = 0.01
 current_backend = backend.backend()
 
-lr = 0.001
+lr = 0.0004#0.001
+beta = 0.5
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
 opt = Adam(lr=lr)        # from Progressive growing GAN paper
 weight_init = RandomNormal(stddev=0.02)
