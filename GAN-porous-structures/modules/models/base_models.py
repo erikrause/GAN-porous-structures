@@ -111,6 +111,7 @@ class Generator(Model):
         hidden_shape = tuple(hidden_shape)  
 
         g = Dense(units)(input_Z)
+        g = ReLU()(g)
         g = Reshape(hidden_shape)(g)
 
         g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)        #64x4x4
