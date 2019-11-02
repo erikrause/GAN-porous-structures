@@ -380,7 +380,7 @@ class ModelHandler():
             resolution = self.current_shape[0]
             step = resolution//4
             for i in range(0,4):
-                self.save_img(gen_img[0,i,:,:,0], filename + '-n' + str(i))
+                self.save_img(gen_img[0,i*step,:,:,0], filename + '-n' + str(i))
 
         #imgs_mean = np.array([[0.65]])
         #gen_img = generator.predict(self.z_global)
