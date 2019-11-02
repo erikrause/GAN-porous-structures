@@ -37,7 +37,7 @@ filter_sizes = {1: 3,
 # 'directory_name/' (слэш только в конце названия папки!).
 DIRECTORY = ''
 #DATASET_DIR = 'datasets/berea/{}.png'  -   for png files iteration
-DATASET_DIR = 'datasets/berea/berea.tif'
+DATASET_DIR = 'datasets/beadpack/beadpack.tif'
 is_tif = True      # Change to false for downloading .png files
 
 # Initialize dataset:
@@ -56,6 +56,6 @@ batch_size = 32
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 n_fadein = np.array([0, 5000, 4000, 4000, 4000])
-n_straight = np.array([8000, 7000, 6000, 6000, 6000])
+n_straight = np.array([6000, 6000, 6000, 6000, 6000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)

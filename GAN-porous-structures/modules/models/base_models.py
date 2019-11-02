@@ -27,10 +27,10 @@ constraint = None
 clip_value = 0.01
 current_backend = backend.backend()
 
-lr = 0.0004#0.001
+lr = 0.001#0.0004#0.001
 beta = 0.5
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
-opt = Adam(lr=lr)        # from Progressive growing GAN paper
+opt = Adam(lr=lr, beta_1=beta)        # from Progressive growing GAN paper
 weight_init = RandomNormal(stddev=0.02)
 alpha = 0.2
 
