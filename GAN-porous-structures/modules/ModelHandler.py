@@ -93,6 +93,7 @@ class ModelHandler():
             self.model_iteration = self.d_losses_real[-1][-2]
             self.is_fadein = bool(self.d_losses_real[-1][-1])
             self.parameters = self.load_from_file('/parameters')
+            #self.z_global = self.parameters['z_global']
 
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
             self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
@@ -153,22 +154,22 @@ class ModelHandler():
     def load_models_weights(self, shape, is_fadein):
         #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
         models_dir = '{self.directory}/models-weights/'.format(self=self)
-        #for i in range(0, self.n_blocks):
-        #    shape = self.upscale(self.start_shape, k = i)
-        #    for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-        #        shape = self.upscale(self.start_shape, k = i)
-        #        resolution_model = self.models[model][shape]
-        #        for n in range(0, len(resolution_model)):
-        #            resolution_model[n].load_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
-        #                                                                                               name = model.__name__,
-        #                                                                                               n=self.fadein_label(n), 
-        #                                                                                               res=shape[0]))
-        for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-            tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
-            self.models[model][shape][int(is_fadein)].load_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
+        for i in range(0, self.n_blocks):
+            shape = self.upscale(self.start_shape, k = i)
+            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+                shape = self.upscale(self.start_shape, k = i)
+                resolution_model = self.models[model][shape]
+                for n in range(0, len(resolution_model)):
+                    resolution_model[n].load_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
                                                                                                        name = model.__name__,
-                                                                                                       n=self.fadein_label(is_fadein), 
+                                                                                                       n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
+        #for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+        #    tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))    # TO DELETE?
+        #    self.models[model][shape][int(is_fadein)].load_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
+        #                                                                                               name = model.__name__,
+        #                                                                                               n=self.fadein_label(is_fadein), 
+        #                                                                                               res=shape[0]))
 
 
     def load_models(self):
@@ -275,23 +276,23 @@ class ModelHandler():
         #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
         tf.gfile.MkDir('{self.directory}/models-weights/'.format(self=self))
         models_dir = '{self.directory}/models-weights/'.format(self=self)
-        #for i in range(0, self.n_blocks):
-        #    shape = self.upscale(self.start_shape, k = i)
-        #    for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-        #        tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
-        #        shape = self.upscale(self.start_shape, k = i)
-        #        resolution_model = self.models[model][shape]
-        #        for n in range(0, len(resolution_model)):
-        #            resolution_model[n].save_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
-        #                                                                                               name = model.__name__,
-        #                                                                                               n=self.fadein_label(n), 
-        #                                                                                               res=shape[0]))
-        for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-            tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
-            self.models[model][shape][int(is_fadein)].save_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
+        for i in range(0, self.n_blocks):
+            shape = self.upscale(self.start_shape, k = i)
+            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+                tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
+                shape = self.upscale(self.start_shape, k = i)
+                resolution_model = self.models[model][shape]
+                for n in range(0, len(resolution_model)):
+                    resolution_model[n].save_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
                                                                                                        name = model.__name__,
-                                                                                                       n=self.fadein_label(is_fadein), 
+                                                                                                       n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
+        #for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+        #    tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
+        #    self.models[model][shape][int(is_fadein)].save_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
+        #                                                                                               name = model.__name__,
+        #                                                                                               n=self.fadein_label(is_fadein), 
+        #                                                                                               res=shape[0]))
 
 
         #self.save_models()
@@ -363,25 +364,43 @@ class ModelHandler():
             for model in [base_models.Generator]:
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
-                    self.gen_two(resolution_model[1], '/next/x{}-fade-i{}-m{}-{}'.format(resolution, iteration, self.model_iteration, description))
-                    self.gen_two(resolution_model[0], '/next/x{}-norm-i{}-m{}-{}'.format(resolution, iteration, self.model_iteration, description))
+                    self.gen_two(resolution_model[1], '/next/x{}-fade/x{}-fade-i{}-m{}-{}'.format(resolution, resolution, iteration, self.model_iteration, description))
+                    self.gen_two(resolution_model[0], '/next/x{}-norm/x{}-norm-i{}-m{}-{}'.format(resolution, resolution, iteration, self.model_iteration, description))
         #self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
         #self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
     # не используется (for debug)
     def gen_two(self, generator, filename):
         imgs_mean = np.array([[0.15]])
         gen_img = generator.predict(self.z_global)
-        fig=plt.figure()
-        plt.imshow(gen_img[0,:,:,0], cmap='gray')
-        fig.savefig(self.samples_dir + filename)
-        plt.close(fig)
 
-        imgs_mean = np.array([[0.65]])
-        gen_img = generator.predict(self.z_global)
-        fig=plt.figure()
-        plt.imshow(gen_img[0,:,:,0], cmap='gray')
-        fig.savefig(self.samples_dir + filename+' 2')
-        plt.close(fig)
+        if len(gen_img.shape) == 4:
+            self.save_img(gen_img[0,:,:,0], filename)
+
+        elif len(gen_img.shape) == 5:
+            resolution = self.current_shape[0]
+            step = resolution//4
+            for i in range(0,4):
+                self.save_img(gen_img[0,i,:,:,0], filename + '-n' + str(i))
+
+        #imgs_mean = np.array([[0.65]])
+        #gen_img = generator.predict(self.z_global)
+        #fig=plt.figure()
+        #plt.imshow(gen_img[0,:,:,0], cmap='gray')
+        #fig.savefig(self.samples_dir + filename+' 2')
+        #plt.close(fig)
+
+    def save_img(self, image, filename):
+        # With matplotlib.pyplot:
+        #fig=plt.figure()
+        #plt.imshow(image, cmap='gray')
+        #fig.savefig(self.samples_dir + filename)
+        #plt.close(fig)
+
+        # With PIL.Image:
+        image = (image+1)*127.5
+        image = image.astype('uint8')
+        img = Image.fromarray(image)
+        img.save(self.samples_dir + filename + '.png')
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
     
@@ -460,7 +479,7 @@ class ModelHandler():
         resolution = self.current_shape[0]
         axis = len(self.current_shape) - 1
         self.generate_imgs(resolution, self.iteration, g_model, axis, n_imgs = 1, fadein=self.is_fadein)
-        #self.sample_next(self.current_shape[0], self.iteration, 'start')  
+        self.sample_next(self.current_shape[0], self.iteration, 'start')  
 
         self.is_interrupt = []
         self.input_string = ''
@@ -569,13 +588,13 @@ class ModelHandler():
             if (self.iteration) % sample_interval == 0:
                 # Save losses and accuracies so they can be plotted after training
                 save_time = time.time()
-                print('save metrics time: ', time.time() - save_time)
-                self.save_models_weights(self.current_shape, self.is_fadein)
-                print('save weights time: ', time.time() - save_time)
-                self.save_metrics()
-                self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
+                #print('save metrics time: ', time.time() - save_time)
+                #self.save_models_weights(self.current_shape, self.is_fadein)
+                #print('save weights time: ', time.time() - save_time)
+                #self.save_metrics()
+                #self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
                 self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein)
-                #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
+                self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
                 print("%d [D loss: %f, D acc: %.2f%%] [G loss: %f] [Time: %f.4]" %
@@ -594,6 +613,12 @@ class ModelHandler():
                 #prob = time.time()
                 #self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
                 #print('update batch time: ', time.time() - prob)
+            if self.iteration % 500 == 0:
+                print('save metrics time: ', time.time() - save_time)
+                self.save_models_weights(self.current_shape, self.is_fadein)
+                print('save weights time: ', time.time() - save_time)
+                self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein, 'z_global': self.z_global})
+                self.save_metrics()
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
 
