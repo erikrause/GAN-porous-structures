@@ -20,6 +20,7 @@ global clip_value
 global opt
 global weight_init
 global lr
+global dis_lr_multipiler
 global alpha
 global beta
 
@@ -28,9 +29,11 @@ clip_value = 0.01
 current_backend = backend.backend()
 
 lr = 0.001#0.0004#0.001
+dis_lr_multipiler = 2
 beta = 0.5
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
-opt = Adam(lr=lr, beta_1=beta)        # from Progressive growing GAN paper
+dis_opt = Adam(lr=lr * dis_lr_multipiler, beta_1=beta)        # from Progressive growing GAN paper
+gen_opt = Adam(lr=lr, beta_1=beta)
 weight_init = RandomNormal(stddev=0.02)
 alpha = 0.2
 
@@ -137,7 +140,7 @@ class GAN(Model):
         model = self.__build(generator, discriminator)
         Model.__init__(self, model.inputs, model.outputs)
         self.compile(loss='binary_crossentropy', 
-                     optimizer=opt)
+                     optimizer=gen_opt)
 
     def __build(self, generator, discriminator):
 
@@ -254,7 +257,7 @@ class Discriminator(Model):
 
         self.compile(loss='binary_crossentropy',
                      metrics=['accuracy'],
-                     optimizer=opt)
+                     optimizer=dis_opt)
 
     def __build(self, img_shape:tuple):
 

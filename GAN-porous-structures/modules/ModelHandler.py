@@ -485,7 +485,7 @@ class ModelHandler():
                 decay = (1 - (self.iteration / 5000)) ** 5#(iterations//1000//5) #23
                 lr = start_lr * decay + 0.000001
             prob = time.time()
-            backend.set_value(d_model.optimizer.lr, lr)
+            backend.set_value(d_model.optimizer.lr, lr * base_models.dis_lr_multipiler)
             backend.set_value(gan_model.optimizer.lr, lr)
             lr_time = time.time() - prob
             ############################
