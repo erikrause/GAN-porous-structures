@@ -93,7 +93,7 @@ class ModelHandler():
             self.model_iteration = self.d_losses_real[-1][-2]
             self.is_fadein = bool(self.d_losses_real[-1][-1])
             self.parameters = self.load_from_file('/parameters')
-            #self.z_global = self.parameters['z_global']
+            self.z_global = self.parameters['z_global']
 
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
             self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)

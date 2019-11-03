@@ -42,6 +42,7 @@ def update_fadein(models, step, n_steps, alpha = -1):
                         #alpha = step / float(n_steps - 1)
                         dalpha = remaining_alpha / remaining_steps
                         alpha = current_alpha + dalpha
+                #alpha = 0       #debug
                 backend.set_value(layer.alpha, alpha)
     return alpha
 
