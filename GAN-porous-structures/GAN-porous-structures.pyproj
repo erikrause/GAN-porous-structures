@@ -35,9 +35,6 @@
     <Compile Include="modules\preprocess.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="modules\models\pggan.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="modules\models\base_models.py">
       <SubType>Code</SubType>
     </Compile>
