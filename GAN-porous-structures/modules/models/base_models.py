@@ -113,8 +113,9 @@ class Generator(Model):
         g = Dense(units)(input_Z)
         g = ReLU()(g)
         g = Reshape(hidden_shape)(g)
+        g = self.upsample()(g)
 
-        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)        #64x4x4
+        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)        #64x4x4
         g = BatchNormalization()(g)
         g = ReLU()(g)
         g = self.upsample()(g)
@@ -123,10 +124,10 @@ class Generator(Model):
         #g = BatchNormalization()(g)
         #g = ReLU()(g)
 
-        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)        #32x8x8
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
-        g = self.upsample()(g)
+        #g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)        #32x8x8
+        #g = BatchNormalization()(g)
+        #g = ReLU()(g)
+        #g = self.upsample()(g)
     
         g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         img = Activation('tanh')(g)
