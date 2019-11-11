@@ -11,4 +11,4 @@ If DIRECTORY contains logs and weights, model will continue training from the la
 
 Logs files contains pickle objects with lists of logs.
 
-Press any key while training to safely break loop 
+Press any key while training to safely break the loop 
