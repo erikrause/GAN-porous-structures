@@ -388,6 +388,14 @@ class ModelHandler():
           
             self.train_block(iterations, batch_size, sample_interval, n_resolution)
 
+            #########
+            # КОСТЫЛЬ! TODO: убрать баг 
+            print("Закройте окно и запустите программу снова для тренировки следующего слоя!")
+            input()         
+            ##########
+            
+            ##############################
+            # TODO: код не рабочий, удалить (нужен был для jupyter)
             if not self.is_interrupt:
                 self.model_iteration += 1   
                 self.iteration = 0
@@ -400,7 +408,8 @@ class ModelHandler():
                     self.iterations = input_string + di
                 else:
                     break
-    
+            ##############################
+                
     # Thread for interrupt train loop with keyboard: 
     def input_thread(self, is_interrupt):
         input()
@@ -537,9 +546,9 @@ class ModelHandler():
                 lr = start_lr/1.1
             else:
                 decay = (1 - (self.iteration / iterations)) ** 2    
-                lr = start_lr * decay +  + 0.00042
+                lr = start_lr * decay +  + 0.00025
             prob = time.time()
-            backend.set_value(d_model.optimizer.lr, lr)
+            backend.set_value(d_model.optimizer.lr, lr*2)
             backend.set_value(gan_model.optimizer.lr, lr)
             lr_time = time.time() - prob
 
