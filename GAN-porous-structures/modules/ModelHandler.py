@@ -13,6 +13,7 @@ from keras.utils import plot_model
 from typing import Dict, Tuple  # попробовать позже (статическая типизация)
 import os.path
 import _thread as thread
+import os
 
 class PolynomialDecay():
 	def __init__(self, maxEpochs=100, initAlpha=0.01, power=1.0):
@@ -452,9 +453,17 @@ class ModelHandler():
         data_size = 128 * (downscale)//2
         #self.data_loader.get_batch(data_size, self.end_shape[:-1], downscale)
 
-        start_lr =  base_models.lr / ((self.model_iteration + 1)/2)
+        #start_lr =  base_models.lr / ((self.model_iteration + 1)/2)
+        start_lr = base_models.lr
         backend.set_value(d_model.optimizer.lr, start_lr)
         backend.set_value(gan_model.optimizer.lr, start_lr)
+
+        #####
+        # Old train history plot (from manning book):
+        losses = []
+        accuracies = []
+        iteration_checkpoints = []
+        #####
 
         while self.iteration < iterations and not self.is_interrupt:
             
@@ -519,9 +528,6 @@ class ModelHandler():
             #  Train the Generator
             # ---------------------
 
-            # Generate a batch of fake images
-            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
-            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
 
             # Train Generator
@@ -530,8 +536,8 @@ class ModelHandler():
             if self.is_fadein:
                 lr = start_lr/1.1
             else:
-                decay = (1 - (self.iteration / iterations)) ** 5
-                lr = start_lr * decay +  + 0.0008
+                decay = (1 - (self.iteration / iterations)) ** 2    
+                lr = start_lr * decay +  + 0.00042
             prob = time.time()
             backend.set_value(d_model.optimizer.lr, lr)
             backend.set_value(gan_model.optimizer.lr, lr)
@@ -545,6 +551,15 @@ class ModelHandler():
 
 
             if (self.iteration) % sample_interval == 0:
+                #####
+                # Old train history plot (from manning book):
+                # Save losses and accuracies so they can be plotted after training
+                losses.append((self.d_loss, self.g_loss))
+                accuracies.append(100.0 * self.d_acc)
+                iteration_checkpoints.append(self.iteration)
+                self.plot_losses(losses, iteration_checkpoints, resolution, self.is_fadein)
+                #####
+
                 # Save losses and accuracies so they can be plotted after training
                 self.save_metrics()
                 self.save_models_weights()
@@ -570,6 +585,35 @@ class ModelHandler():
                 #print('update batch time: ', time.time() - prob)
 
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
+
+
+
+    def plot_losses(self, losses, iteration_checkpoints, resolution, is_fadein):
+
+        fn = 'norm'
+        if is_fadein:
+            fn = 'fade'
+
+        training_plots_dir = self.directory + "/training plots"
+
+        #if not os.path.exists(training_plots_dir):
+        os.makedirs(training_plots_dir, exist_ok=True)
+
+        losses = np.array(losses)
+
+        # Plot training losses for Discriminator and Generator
+        plt.figure(figsize=(15, 5))
+        plt.plot(iteration_checkpoints, losses.T[0], label="Discriminator loss")
+        plt.plot(iteration_checkpoints, losses.T[1], label="Generator loss")
+
+        plt.xticks(iteration_checkpoints, rotation=90)
+
+        plt.title("Training Loss")
+        plt.xlabel("Iteration")
+        plt.ylabel("Loss")
+        plt.legend()
+        plt.savefig("{}/losses-{}-{}.png".format(training_plots_dir, resolution, fn))
+        plt.close()
 
     def __get_axis(self, shape):
         if len(shape) - 1 == 3:

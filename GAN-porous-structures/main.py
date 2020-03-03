@@ -7,9 +7,11 @@ args = parser.parse_args()
 #ENABLE PLAIDML FOR AMD DEVICES:
 if args.amd:
     import os
+    import plaidml
     import plaidml.keras
     plaidml.keras.install_backend()
     os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+    #import keras
 #################
 
 from modules.preprocess import DataLoader
@@ -31,7 +33,7 @@ n_filters = {1: 16,
 
 filter_sizes = {1: 3,
                 2: 3,
-                3: 5,
+                3: 3,
                 4: 5}      
 
 # 'directory_name/' (слэш только в конце названия папки!).
@@ -55,7 +57,9 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters,
 batch_size = 8
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
-n_fadein = np.array([0, 2500, 3000, 4000, 4000])
-n_straight = np.array([3400, 3000, 4000, 6000, 6000])
+#n_fadein = np.array([0, 2500, 3500, 10000, 14000])
+#n_straight = np.array([3400, 6000, 30000, 80000, 200000])
+n_fadein = np.array([0, 1500, 3500, 10000, 14000])
+n_straight = np.array([8000, 6000, 30000, 80000, 200000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)

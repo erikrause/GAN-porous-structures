@@ -7,7 +7,7 @@ from keras.layers.convolutional import Conv3D, Conv3DTranspose, MaxPooling3D, Up
 from keras.models import Model
 from keras.optimizers import Adam, RMSprop
 from keras import backend
-import tensorflow as tf
+#import tensorflow as tf
 
 from keras.initializers import RandomNormal
 from keras.constraints import Constraint
