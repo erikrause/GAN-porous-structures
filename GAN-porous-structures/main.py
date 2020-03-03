@@ -21,7 +21,7 @@ import numpy as np
 # Start input image resolution
 channels = 1        # 1 - черно-белое изображение
 start_shape = (16,16,16,channels)
-z_dim = 100         # Для сложных данных увеличить z_dim
+z_dim = 70         # Для сложных данных увеличить z_dim
 n_blocks = 4        # Количество повышений разрешения. End_shape = start_shape*n_blocks
 is_nearest = False   #
 

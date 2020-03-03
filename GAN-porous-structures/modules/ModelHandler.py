@@ -615,7 +615,7 @@ class ModelHandler():
         losses = np.array(losses)
 
         # Plot training losses for Discriminator and Generator
-        plt.figure(figsize=(15, 5))
+        plt.figure(figsize=(15, 10))
         plt.plot(iteration_checkpoints, losses.T[0], label="Discriminator loss")
         plt.plot(iteration_checkpoints, losses.T[1], label="Generator loss")
 
@@ -625,6 +625,7 @@ class ModelHandler():
         plt.xlabel("Iteration")
         plt.ylabel("Loss")
         plt.legend()
+        plt.grid()
         plt.savefig("{}/losses-{}-{}.png".format(training_plots_dir, resolution, fn))
         plt.close()
 

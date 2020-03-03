@@ -28,10 +28,10 @@ clip_value = 0.01
 current_backend = backend.backend()
 
 lr = 0.001
-dis_lr = lr*2
+dis_lr = lr*1
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
-opt = Adam(lr=lr, decay=0.01)        # from Progressive growing GAN paper
-dis_opt = Adam(lr=dis_lr, decay=0.01)
+opt = Adam(lr=lr)        # from Progressive growing GAN paper
+dis_opt = Adam(lr=dis_lr)
 weight_init = RandomNormal(stddev=0.02)
 
 # clip model weights to a given hypercube (vanilla WGAN)
