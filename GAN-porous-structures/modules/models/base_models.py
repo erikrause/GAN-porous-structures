@@ -18,16 +18,20 @@ from keras.layers.merge import _Merge
 global constraint
 global clip_value
 global opt
+global dis_opt
 global weight_init
 global lr
+global dis_lr
 
 constraint = None
 clip_value = 0.01
 current_backend = backend.backend()
 
 lr = 0.001
+dis_lr = lr*2
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
-opt = Adam(lr=lr)        # from Progressive growing GAN paper
+opt = Adam(lr=lr, decay=0.01)        # from Progressive growing GAN paper
+dis_opt = Adam(lr=dis_lr, decay=0.01)
 weight_init = RandomNormal(stddev=0.02)
 
 # clip model weights to a given hypercube (vanilla WGAN)
@@ -182,7 +186,7 @@ class Critic(Model):
             Model.__init__(self, inputs, outputs)
 
         self.compile(loss=wasserstein_loss,
-                      optimizer=opt)
+                      optimizer=dis_opt)
 
     def __build(self, img_shape:tuple):
 
@@ -242,7 +246,7 @@ class Discriminator(Model):
 
         self.compile(loss='binary_crossentropy',
                      metrics=['accuracy'],
-                     optimizer=opt)
+                     optimizer=dis_opt)
 
     def __build(self, img_shape:tuple):
 

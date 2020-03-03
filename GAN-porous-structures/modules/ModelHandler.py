@@ -464,8 +464,9 @@ class ModelHandler():
 
         #start_lr =  base_models.lr / ((self.model_iteration + 1)/2)
         start_lr = base_models.lr
-        backend.set_value(d_model.optimizer.lr, start_lr)
-        backend.set_value(gan_model.optimizer.lr, start_lr)
+        dis_start_lr = base_models.dis_lr
+        #backend.set_value(d_model.optimizer.lr, dis_start_lr)
+        #backend.set_value(gan_model.optimizer.lr, start_lr)
 
         #####
         # Old train history plot (from manning book):
@@ -544,12 +545,15 @@ class ModelHandler():
 
             if self.is_fadein:
                 lr = start_lr/1.1
+                dis_lr = dis_start_lr/1.1
             else:
                 decay = (1 - (self.iteration / iterations)) ** 2    
                 lr = start_lr * decay +  + 0.00025
+                dis_lr = dis_start_lr * decay +  + 0.00025
             prob = time.time()
-            backend.set_value(d_model.optimizer.lr, lr*2)
-            backend.set_value(gan_model.optimizer.lr, lr)
+
+            #backend.set_value(d_model.optimizer.lr, dis_lr)
+            #backend.set_value(gan_model.optimizer.lr, lr)
             lr_time = time.time() - prob
 
             
