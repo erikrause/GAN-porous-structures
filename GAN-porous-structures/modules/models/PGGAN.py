@@ -6,6 +6,7 @@ from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, Up
 from keras.models import Model
 from keras.optimizers import Adam
 from keras import backend
+from modules.models.layers import *
 #import tensorflow as tf
 
 #import tensorflow.python.keras.backend as K
@@ -69,19 +70,19 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
     print(n_filters)
     
     #d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
-    #d = LeakyReLU(alpha=0.01)(d)
+    #d = LeakyReLU(base_models.alpha)(d)
     #d = AveragePooling2D()(d)   
 
     d = Conv2D(n_filters, kernel_size=1, strides=1, padding='same')(input_img)
     d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.02)(d)
+    d = LeakyReLU(base_models.alpha)(d)
     d = Dropout(rate = 0.2)(d)
     d = AveragePooling2D()(d)   
 
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
     d = Conv2D(n_filters_last, kernel_size = filter_size, strides=1, padding='same')(d)
     d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.02)(d)
+    d = LeakyReLU(base_models.alpha)(d)
     d = Dropout(rate = 0.2)(d)
     d = AveragePooling2D()(d)   
     
@@ -141,21 +142,23 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     upsample = old_model.upsample
 
     n_filters = n_filters // 2
-    # upsample, and define new block
-    #upsampling = upsample()(block_end)
-    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(block_end)
-    g = BatchNormalization()(g)
-    g = ReLU()(g)
+    # upsample and define new block
+    upsampling = upsample()(block_end)
+    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    #g = BatchNormalization()(g)
+    g = LeakyReLU(base_models.alpha)(g)
+    g = PixelNormLayer(g)
     #g = upsample()(g)
 
     g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
-    g = BatchNormalization()(g)
-    g = ReLU()(g)
-    g = upsample()(g)
+    #g = BatchNormalization()(g)
+    g = LeakyReLU(base_models.alpha)(g)
+    g = PixelNormLayer(g)
+    #g = upsample()(g)
     
     # add new output layer
-    g = conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
-    out_image = Activation('tanh')(g)
+    g = conv(1, kernel_size=1, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    out_image = Activation('linear')(g)
     # define model
     straight_model = base_models.Generator(inputs=old_model.inputs,
                                            start_img_shape=old_model.start_img_shape,

@@ -8,10 +8,11 @@ from keras.models import Model
 from keras.optimizers import Adam, RMSprop
 from keras import backend
 #import tensorflow as tf
-
+from modules.models.layers import *
 from keras.initializers import RandomNormal
 from keras.constraints import Constraint
 #from keras.constraints import MinMaxNorm
+from keras import initializers
 
 from keras.layers.merge import _Merge
 
@@ -22,6 +23,7 @@ global dis_opt
 global weight_init
 global lr
 global dis_lr
+global alpha
 
 constraint = None
 clip_value = 0.01
@@ -32,7 +34,8 @@ dis_lr = lr*2
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
 opt = Adam(lr=lr)        # from Progressive growing GAN paper
 dis_opt = Adam(lr=dis_lr)
-weight_init = RandomNormal(stddev=0.02)
+weight_init = initializers.he_normal()  #RandomNormal(stddev=0.02)
+alpha = 0.2
 
 # clip model weights to a given hypercube (vanilla WGAN)
 class ClipConstraint(Constraint):
@@ -67,10 +70,10 @@ class Generator(Model):
         self.dims = len(self.start_img_shape) - 1
 
         if self.dims == 3:
-            self.conv = Conv3DTranspose
+            self.conv = Conv3D
             self.upsample = UpSampling3D
         elif self.dims == 2:
-            self.conv = Conv2DTranspose
+            self.conv = Conv2D
             self.upsample = UpSampling2D
 
         if outputs == None:
@@ -97,26 +100,31 @@ class Generator(Model):
         hidden_shape.append(64)
         hidden_shape = tuple(hidden_shape)
 
-        g = Dense(units)(input_Z)
+        g = PixelNormLayer(input_Z)
+        g = Dense(units)(g)
+        g = LeakyReLU(alpha)(g)
+        g = PixelNormLayer(g)
         g = Reshape(hidden_shape)(g)
 
         g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
+        #g = BatchNormalization()(g)
+        g = LeakyReLU(alpha)(g)
+        g = PixelNormLayer(g)
         g = self.upsample()(g)
   
         g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
+        #g = BatchNormalization()(g)
+        g = LeakyReLU(alpha)(g)
+        g = PixelNormLayer(g)
         #g = self.upsample()(g)
 
         g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
-        g = self.upsample()(g)
+        g = LeakyReLU(alpha)(g)
+        g = PixelNormLayer(g)
+
     
-        g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        img = Activation('tanh')(g)
+        g = self.conv(1, kernel_size=1, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        img = Activation('linear')(g)
 
         return Model(inputs = input_Z, outputs = img)
 
@@ -237,7 +245,6 @@ class Discriminator(Model):
             self.pool = AveragePooling2D
 
         if outputs == None:
-            self.alpha = 0.2
             self.droprate = droprate
             model = self.__build(img_shape)
             Model.__init__(self, model.inputs, model.outputs)
@@ -258,22 +265,20 @@ class Discriminator(Model):
         #d = AveragePooling2D()(d)
     
         d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        d = LeakyReLU(alpha)(d)
+        #d = Dropout(rate = self.droprate)(d)
+
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        d = LeakyReLU(alpha)(d)
+        #d = Dropout(rate = self.droprate)(d)
         d = self.pool()(d)
 
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
-        #d = self.pool()(d)
+        d = MinibatchStatConcatLayer()(d)
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
-        d = self.pool()(d)
+        d = LeakyReLU(alpha)(d)
+        #d = Dropout(rate = self.droprate)(d)
+        #d = self.pool()(d)  #?
     
         d = Flatten()(d)
 
@@ -284,7 +289,7 @@ class Discriminator(Model):
         #d = ReLU()(d)
         #d = Dropout(rate = self.droprate)(d)
     
-        d = Dense(1, activation='sigmoid')(d) 
+        d = Dense(1, activation='linear', kernel_initializer=weight_init)(d) 
 
 
         model = Model(inputs=input_img, outputs=d)
