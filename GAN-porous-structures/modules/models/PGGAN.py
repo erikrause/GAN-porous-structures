@@ -144,21 +144,21 @@ def __add_generator_block(old_model, n_filters=64, filter_size=3):
     n_filters = n_filters // 2
     # upsample and define new block
     upsampling = upsample()(block_end)
-    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(upsampling)
     #g = BatchNormalization()(g)
     g = LeakyReLU(base_models.alpha)(g)
-    g = PixelNormLayer(g)
+    g = PixelNormLayer()(g)
     #g = upsample()(g)
 
     g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
     #g = BatchNormalization()(g)
     g = LeakyReLU(base_models.alpha)(g)
-    g = PixelNormLayer(g)
+    g = PixelNormLayer()(g)
     #g = upsample()(g)
     
     # add new output layer
     g = conv(1, kernel_size=1, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
-    out_image = Activation('linear')(g)
+    out_image = Activation('tanh')(g)
     # define model
     straight_model = base_models.Generator(inputs=old_model.inputs,
                                            start_img_shape=old_model.start_img_shape,

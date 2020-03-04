@@ -79,7 +79,7 @@ class PixelNormLayer(Layer):
     def __init__(self,**kwargs):
         super(PixelNormLayer,self).__init__(**kwargs)
     def call(self, inputs, **kwargs):
-        return inputs / K.sqrt(K.mean(inputs**2, axis=-1, keepdims=True) + 1.0e-8)
+        return inputs / K.sqrt(K.mean(K.pow(inputs,2), axis=-1, keepdims=True) + 1.0e-8)
     def compute_output_shape(self, input_shape):
         return input_shape
 
