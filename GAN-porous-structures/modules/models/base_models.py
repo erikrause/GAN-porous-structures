@@ -253,14 +253,14 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
-        #d = conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
-        #d = LeakyReLU(alpha = self.alpha)(d) 
+        d = self.conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
+        d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
     
-        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = Dropout(rate = self.droprate)(d)
         d = self.pool()(d)
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
@@ -272,8 +272,8 @@ class Discriminator(Model):
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
-        d = self.pool()(d)
+        #d = Dropout(rate = self.droprate)(d)
+        #d = self.pool()(d)
     
         d = Flatten()(d)
 
