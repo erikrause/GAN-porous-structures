@@ -27,8 +27,8 @@ constraint = None
 clip_value = 0.01
 current_backend = backend.backend()
 
-lr = 0.001
-dis_lr = lr*1
+lr = 0.0005
+dis_lr = lr*2
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
 opt = Adam(lr=lr)        # from Progressive growing GAN paper
 dis_opt = Adam(lr=dis_lr)

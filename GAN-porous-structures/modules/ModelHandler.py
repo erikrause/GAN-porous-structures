@@ -454,9 +454,10 @@ class ModelHandler():
         self.generate_imgs(resolution, self.iteration, g_model, axis, n_imgs = 1, fadein=self.is_fadein)
         #self.sample_next(self.current_shape[0], self.iteration, 'start')  
 
+        # TODO: Delete interrupt
         self.is_interrupt = []
         self.input_string = ''
-        thread.start_new_thread(self.input_thread, (self.is_interrupt,))
+        #thread.start_new_thread(self.input_thread, (self.is_interrupt,))
         
         downscale = self.end_shape[0] // resolution
         data_size = 128 * (downscale)//2
