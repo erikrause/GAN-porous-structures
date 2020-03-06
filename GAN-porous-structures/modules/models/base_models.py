@@ -63,6 +63,41 @@ else:
 def wasserstein_loss(y_true, y_pred):
 	return backend.mean(y_true * y_pred)
 
+class MinibatchStdev(Layer):
+	# initialize the layer
+	def __init__(self, **kwargs):
+		super(MinibatchStdev, self).__init__(**kwargs)
+ 
+	# perform the operation
+	def call(self, inputs):
+		# calculate the mean value for each pixel across channels
+		mean = backend.mean(inputs, axis=0, keepdims=True)
+		# calculate the squared differences between pixel values and mean
+		squ_diffs = backend.square(inputs - mean)
+		# calculate the average of the squared differences (variance)
+		mean_sq_diff = backend.mean(squ_diffs, axis=0, keepdims=True)
+		# add a small value to avoid a blow-up when we calculate stdev
+		mean_sq_diff += 1e-8
+		# square root of the variance (stdev)
+		stdev = backend.sqrt(mean_sq_diff)
+		# calculate the mean standard deviation across each pixel coord
+		mean_pix = backend.mean(stdev, keepdims=True)
+		# scale this up to be the size of one input feature map for each sample
+		shape = backend.shape(inputs)
+		output = backend.tile(mean_pix, (shape[0], shape[1], shape[2], shape[3], 1))
+		# concatenate with the output
+		combined = backend.concatenate([inputs, output], axis=-1)
+		return combined
+ 
+	# define the output shape of the layer
+	def compute_output_shape(self, input_shape):
+		# create a copy of the input shape as a list
+		input_shape = list(input_shape)
+		# add one to the channel dimension (assume channels-last)
+		input_shape[-1] += 1
+		# convert list to a tuple
+		return tuple(input_shape)
+
 class Generator(Model):
     def __init__(self, inputs, start_img_shape, outputs = None):
 
@@ -262,26 +297,22 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
-        #d = conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
+        #d = self.conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
-    
+
         d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
-        d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
         d = self.pool()(d)
 
+        d = MinibatchStdev()(d)
+
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
         #d = self.pool()(d)
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
         d = self.pool()(d)
     
         d = Flatten()(d)

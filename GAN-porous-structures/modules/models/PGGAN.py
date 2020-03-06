@@ -273,7 +273,7 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
 
     return [straight_model, fadein_model]
 
-def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=6,):
+def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=4,):
     #old_input_shape = list(old_model.input_shape) #get_input_shape_at(0)
     old_input_shape = list(old_model.get_input_shape_at(0))
     old_img_shape = old_input_shape[1:-1]
@@ -293,14 +293,20 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
     # New block/
     print(n_filters)
     
+    #d = conv(n_filters, 
+    #           kernel_size=1, 
+    #           strides=1, 
+    #           padding='same', 
+    #           kernel_initializer=base_models.weight_init)(input_img)
+    #d = LeakyReLU(alpha=0.02)(d)
+
     d = conv(n_filters, 
                kernel_size=filter_size, 
                strides=1, 
                padding='same', 
                kernel_initializer=base_models.weight_init)(input_img)
-    d = BatchNormalization()(d)
+    #d = BatchNormalization()(d)
     d = LeakyReLU(alpha=0.02)(d)
-    d = Dropout(rate = 0.2)(d)
     d = pool()(d)
 
     n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
