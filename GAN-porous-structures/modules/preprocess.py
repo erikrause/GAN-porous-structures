@@ -8,6 +8,8 @@ from keras.layers.convolutional import MaxPooling3D, AveragePooling3D, MaxPoolin
 from keras.models import Model
 
 import math
+from PIL import Image
+import os
 
 class DataLoader(object):
     def __init__(self, filename:str, resolution:tuple, n_blocks:int, is_tif = True, dims = 3, is_nearest_batch = False):
@@ -28,9 +30,22 @@ class DataLoader(object):
         self.dataset = np.expand_dims(self.dataset, axis=0)
         self.dataset = np.expand_dims(self.dataset, axis=-1)
         self.datasets.append(self.dataset)
+        
+
+        # debug:(gen_imgs+1)*127.5
+        debug = (self.datasets[0][0,0,:,:,0]+1)*127.5
+        debug = self.datasets[0][0,0,:,:,0]
+        debug_sample = Image.fromarray(self.datasets[0][0,0,:,:,0])
+        debug_path = '/debug/dataset/'
+        os.makedirs(debug_path, exist_ok=True)
+        debug_sample.save(debug_path + 'dataset-0.png')
 
         for i in range(1,n_blocks):
             self.datasets.append(self.downsample_network.calculate(self.datasets[-1], 2))
+            # debug:
+            debug = self.datasets[i][0,0,:,:,0].astype('uint8')
+            debug_sample = Image.fromarray(debug)
+            debug_sample.save('{}dataset-{}.png'.format(debug_path, i))
     
     def get_batch(self, batch_size:int, resolution:tuple, downscale:int):
 

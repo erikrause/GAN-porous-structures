@@ -378,3 +378,13 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
                                       outputs=d)
 
     return [straight_model, fadein_model]
+
+shape = (16,16,16,1)
+# ЗАГЛУШКИ!!!
+def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=4,):
+    model = base_models.Discriminator(shape)
+    return [model, model]
+
+def __add_generator_block(old_model, n_filters=64, filter_size=3):
+    model = base_models.Generator(70, shape)
+    return [model, model]

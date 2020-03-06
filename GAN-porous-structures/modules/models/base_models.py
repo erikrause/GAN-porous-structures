@@ -135,31 +135,27 @@ class Generator(Model):
         hidden_shape.append(64)
         hidden_shape = tuple(hidden_shape)
 
-        g = PixelNormLayer()(input_Z)
-        g = Dense(units)(g)
+        #g = PixelNormLayer()(input_Z)
+        g = Dense(units)(input_Z)
         g = LeakyReLU(alpha)(g)
-        g = PixelNormLayer()(g)
+        #g = PixelNormLayer()(g)
         g = Reshape(hidden_shape)(g)
-        g = self.upsample()(g)
+        #g = self.upsample()(g)
 
         g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        #g = BatchNormalization()(g)
+        g = BatchNormalization()(g)
         g = LeakyReLU(alpha)(g)
-        g = PixelNormLayer()(g)
+        #g = PixelNormLayer()(g)
         g = self.upsample()(g)
   
         g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        #g = BatchNormalization()(g)
+        g = BatchNormalization()(g)
         g = LeakyReLU(alpha)(g)
-        g = PixelNormLayer()(g)
-        #g = self.upsample()(g)
-
-        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        g = LeakyReLU(alpha)(g)
-        g = PixelNormLayer()(g)
-
+        #g = PixelNormLayer()(g)
+        g = self.upsample()(g)
     
-        g = self.conv(1, kernel_size=1, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        #g = BatchNormalization()(g)
         img = Activation('tanh')(g)
 
         return Model(inputs = input_Z, outputs = img)
@@ -297,22 +293,22 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
-        #d = self.conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
-        #d = LeakyReLU(alpha = self.alpha)(d) 
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
 
-        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
+        d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = self.pool()(d)
 
-        d = MinibatchStdev()(d)
+        #d = MinibatchStdev()(d)
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        #d = self.pool()(d)
-
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
+        
         d = self.pool()(d)
     
         d = Flatten()(d)
