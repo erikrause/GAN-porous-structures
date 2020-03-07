@@ -62,41 +62,81 @@ else:
 
 def wasserstein_loss(y_true, y_pred):
 	return backend.mean(y_true * y_pred)
-
+# mini-batch standard deviation layer
 class MinibatchStdev(Layer):
-	# initialize the layer
-	def __init__(self, **kwargs):
-		super(MinibatchStdev, self).__init__(**kwargs)
- 
-	# perform the operation
-	def call(self, inputs):
-		# calculate the mean value for each pixel across channels
-		mean = backend.mean(inputs, axis=0, keepdims=True)
-		# calculate the squared differences between pixel values and mean
-		squ_diffs = backend.square(inputs - mean)
-		# calculate the average of the squared differences (variance)
-		mean_sq_diff = backend.mean(squ_diffs, axis=0, keepdims=True)
-		# add a small value to avoid a blow-up when we calculate stdev
-		mean_sq_diff += 1e-8
-		# square root of the variance (stdev)
-		stdev = backend.sqrt(mean_sq_diff)
-		# calculate the mean standard deviation across each pixel coord
-		mean_pix = backend.mean(stdev, keepdims=True)
-		# scale this up to be the size of one input feature map for each sample
-		shape = backend.shape(inputs)
-		output = backend.tile(mean_pix, (shape[0], shape[1], shape[2], shape[3], 1))
-		# concatenate with the output
-		combined = backend.concatenate([inputs, output], axis=-1)
-		return combined
- 
+    # initialize the layer
+    def __init__(self, **kwargs):
+        super(MinibatchStdev, self).__init__(**kwargs)
+
+    # perform the operation
+    def call(self, inputs):
+        # calculate the mean value for each pixel across channels
+        mean = backend.mean(inputs, axis=0, keepdims=True)
+        # calculate the squared differences between pixel values and mean
+        squ_diffs = backend.square(inputs - mean)
+        # calculate the average of the squared differences (variance)
+        mean_sq_diff = backend.mean(squ_diffs, axis=0, keepdims=True)
+        # add a small value to avoid a blow-up when we calculate stdev
+        mean_sq_diff += 1e-8
+        # square root of the variance (stdev)
+        stdev = backend.sqrt(mean_sq_diff)
+        # calculate the mean standard deviation across each pixel coord
+        mean_pix = backend.mean(stdev, keepdims=True)
+        # scale this up to be the size of one input feature map for each sample
+        shape = backend.shape(inputs)
+        output = backend.tile(mean_pix, (shape[0], shape[1], shape[2], shape[3], 1))
+        # concatenate with the output
+        combined = backend.concatenate([inputs, output], axis=-1)
+        return combined   # was combined
+
 	# define the output shape of the layer
-	def compute_output_shape(self, input_shape):
-		# create a copy of the input shape as a list
-		input_shape = list(input_shape)
-		# add one to the channel dimension (assume channels-last)
-		input_shape[-1] += 1
-		# convert list to a tuple
-		return tuple(input_shape)
+    def compute_output_shape(self, input_shape):
+        # create a copy of the input shape as a list
+        input_shape = list(input_shape)
+        # add one to the channel dimension (assume channels-last)
+        input_shape[-1] += 1
+        # convert list to a tuple
+        return tuple(input_shape)
+
+def minibatch_std_layer(layer, group_size=4):
+    '''
+    Will calculate minibatch standard deviation for a layer.
+    Will do so under a pre-specified tf-scope with Keras.
+    Assumes layer is a float32 data type. Else needs validation/casting.
+    NOTE: there is a more efficient way to do this in Keras, but just for
+    clarity and alignment with major implementations (for understanding) 
+    this was done more explicitly. Try this as an exercise.
+    '''
+    # Hint!
+    # If you are using pure Tensorflow rather than Keras, always remember scope
+    # minibatch group must be divisible by (or <=) group_size
+    group_size = K.minimum(group_size, K.shape(layer)[0])
+
+    # just getting some shape information so that we can use
+    # them as shorthand as well as to ensure defaults
+    input = layer
+    shape = list(K.int_shape(input))
+    shape[0] = K.shape(input)[0]
+
+    # Reshaping so that we operate on the level of the minibatch
+    # in this code we assume the layer to be:
+    # [Group (G), Minibatch (M), Width (W), Height (H) , Channel (C)]
+    # but be careful different implementations use the Theano specific
+    # order instead
+    minibatch = K.reshape(layer, (group_size, -1, shape[1], shape[2], shape[3], shape[4]))
+
+    # Center the mean over the group [M, W, H, C]
+    minibatch -= K.mean(minibatch, axis=0, keepdims=True)
+    # Calculate the variance of the group [M, W, H, C]
+    minibatch = K.mean(K.square(minibatch), axis = 0)
+    # Calculate the standard deviation over the group [M,W,H,C]
+    minibatch = K.square(minibatch + 1e8)
+    # Take average over feature maps and pixels [M,1,1,1]
+    minibatch = K.mean(minibatch, axis=[1,2,3], keepdims=True)
+    # Add as a layer for each group and pixels
+    minibatch = K.tile(minibatch, [group_size, shape[1], shape[2], shape[3], shape[4]])
+    # Append as a new feature map
+    return K.concatenate([layer, minibatch], axis=1)
 
 class Generator(Model):
     def __init__(self, inputs, start_img_shape, outputs = None):
@@ -153,6 +193,8 @@ class Generator(Model):
         g = LeakyReLU(alpha)(g)
         #g = PixelNormLayer()(g)
         g = self.upsample()(g)
+
+        # тут был conv 32
     
         g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         #g = BatchNormalization()(g)
@@ -293,20 +335,24 @@ class Discriminator(Model):
         input_img = Input(shape = img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
-        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d) 
+        #d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
 
+        d = MinibatchStdev()(input_img)
+        #d = MinibatchStatConcatLayer()(input_img)
+        #d = minibatch_std_layer(input_img)
+
         d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
+        #d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = self.pool()(d)
 
-        #d = MinibatchStdev()(d)
+        
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
+        #d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         
         d = self.pool()(d)

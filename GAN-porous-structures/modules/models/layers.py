@@ -225,14 +225,16 @@ class MinibatchStatConcatLayer(Layer):
             self.n = int(self.averaging[5:])
         else:
             assert self.averaging in ['all', 'flat', 'spatial', 'none', 'gpool'], 'Invalid averaging mode'%self.averaging
-        self.adjusted_std = lambda x, **kwargs: K.sqrt(K.mean((x - K.mean(x, **kwargs)) ** 2, **kwargs) + 1e-8)
+        #self.adjusted_std = lambda x, **kwargs: K.sqrt(K.mean((x - K.mean(x, **kwargs)) ** 2, **kwargs) + 1e-8)
+        self.adjusted_std = lambda x, **kwargs: K.sqrt(K.mean(K.pow((x - K.mean(x, **kwargs)), 2), **kwargs) + 1e-8)
     def call(self, input, **kwargs):
         s = list(K.int_shape(input))
-        s[0] = tf.shape(input)[0]
+        #s[0] = tf.shape(input)[0]
+        s[0] = K.shape(input)[0]
         vals = self.adjusted_std(input,axis=0,keepdims=True)                # per activation, over minibatch dim
         if self.averaging == 'all':                                 # average everything --> 1 value per minibatch
             vals = K.mean(vals,keepdims=True)
-            reps = s; reps[-1]=1;reps[0] = tf.shape(input)[0]
+            reps = s; reps[-1]=1;reps[0] = K.shape(input)[0]
             vals = K.tile(vals,reps)
         elif self.averaging == 'spatial':                           # average spatial locations
             if len(s) == 4:
