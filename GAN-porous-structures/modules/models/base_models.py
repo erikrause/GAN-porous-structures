@@ -340,19 +340,19 @@ class Discriminator(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
 
-        d = MinibatchStdev()(input_img)
+        #d = MinibatchStdev()(input_img)
         #d = MinibatchStatConcatLayer()(input_img)
         #d = minibatch_std_layer(input_img)
 
-        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
-        #d = BatchNormalization()(d)
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = self.pool()(d)
 
         
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        #d = BatchNormalization()(d)
+        d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         
         d = self.pool()(d)
@@ -361,9 +361,9 @@ class Discriminator(Model):
 
         #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        #d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
-        #d = BatchNormalization()(d)
-        #d = ReLU()(d)
+        d = Dense(256, kernel_initializer = weight_init, name='dense')(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
         #d = Dropout(rate = self.droprate)(d)
     
         d = Dense(1, activation='sigmoid')(d) 
