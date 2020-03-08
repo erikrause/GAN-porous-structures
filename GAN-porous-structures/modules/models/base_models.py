@@ -166,7 +166,7 @@ class Generator(Model):
 
         units = 64
         channels = self.start_img_shape[-1]   #?
-        hidden_shape = tuple(x//(2*2) for x in (self.start_img_shape[:-1]))
+        hidden_shape = tuple(x//(2) for x in (self.start_img_shape[:-1]))
         for i in range(self.dims):
             units = units * hidden_shape[i]
         unints = units * channels   # channles не используется!
@@ -200,7 +200,7 @@ class Generator(Model):
         #g = BatchNormalization()(g)
         #g = LeakyReLU(alpha)(g)
         #g = PixelNormLayer()(g)
-        g = self.upsample()(g)
+        #g = self.upsample()(g)
     
         g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         #g = BatchNormalization()(g)
