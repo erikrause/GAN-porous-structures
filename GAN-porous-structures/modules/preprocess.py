@@ -36,7 +36,7 @@ class DataLoader(object):
         debug = (self.datasets[0][0,0,:,:,0]+1)*127.5
         debug = self.datasets[0][0,0,:,:,0]
         debug_sample = Image.fromarray(self.datasets[0][0,0,:,:,0])
-        debug_path = '/debug/dataset/'
+        debug_path = 'debug/dataset/'
         os.makedirs(debug_path, exist_ok=True)
         debug_sample.save(debug_path + 'dataset-0.png')
 

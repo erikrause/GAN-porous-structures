@@ -339,7 +339,11 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 
+#CUSTOM:
 # Model training history
 History*/
 output*/
 *.tif*
+
+# Debug
+debug*/

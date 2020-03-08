@@ -20,21 +20,23 @@ import numpy as np
 
 # Start input image resolution
 channels = 1        # 1 - черно-белое изображение
-start_shape = (16,16,16,channels)
+start_shape = (8,8,8,channels)
 z_dim = 70         # Для сложных данных увеличить z_dim
-n_blocks = 4        # Количество повышений разрешения. End_shape = start_shape*n_blocks
-is_nearest = False   #
+n_blocks = 5        # Количество повышений разрешения. End_shape = start_shape*n_blocks
+is_nearest = False   # Алгоритм понижения разрешения датасета. False = Avgpoolng: True = MaxPooling.
 
 # Filters for each resolution block (from hidden layers to end resolution layers):
-n_filters = {1: 16,
-             2: 8,
-             3: 4,
-             4: 2}    
+n_filters = {1: 32,
+             2: 16,
+             3: 8,
+             4: 4,
+             5: 2}    
 
 filter_sizes = {1: 3,
                 2: 3,
                 3: 3,
-                4: 5}      
+                4: 3,
+                5: 3}      
 
 # 'directory_name/' (слэш только в конце названия папки!).
 DIRECTORY = ''

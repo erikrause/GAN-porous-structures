@@ -1,4 +1,5 @@
 from modules.models import base_models, pggan
+from keras.models import Model
 #from modules.models import pggan3D as pggan
 #from modules.models import base_models3D as base_models
 from modules.preprocess import DataLoader
@@ -153,6 +154,7 @@ class ModelHandler():
 
     def load_models_weights(self):
         #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
+        '''
         models_dir = '{self.directory}/models-weights/'.format(self=self)
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
@@ -164,6 +166,14 @@ class ModelHandler():
                                                                                                        name = model.__name__,
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
+        '''
+        models_dir = '{self.directory}/models-weights/'.format(self=self)
+        for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+            current_model:Model = self.models[model][self.current_shape][self.is_fadein]
+            current_model.load_weights("{models_dir}/{name}s/{name}-x{res}-{is_fadein}.h5".format(models_dir=models_dir,
+                                                                                                  name = model.__name__,
+                                                                                                  is_fadein=self.fadein_label(self.is_fadein),
+                                                                                                  res=self.current_shape[0]))
 
     def load_models(self):
         # NEED TO TEST:
@@ -177,8 +187,11 @@ class ModelHandler():
                                                                                                        name = model.__name__,
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
-        ###########
 
+
+    ###########
+    # Это используется?
+    '''
     def load_models_weights_from_dir(self, weights_dir):
         for i in range(0, self.n_blocks):
             self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(weights_dir, i))
@@ -186,7 +199,8 @@ class ModelHandler():
             self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(weights_dir, i))
             self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(weights_dir, i))
             self.gans[i][0].load_weights('{}/gans/normal_gan-{}.h5'.format(weights_dir, i))
-            self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))     #need to refactoring
+            self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))
+            '''
 
     def build_models(self, start_shape:tuple, z_dim:int, n_filters:np.array, filter_sizes:np.array):
         # Build base models/
@@ -267,6 +281,7 @@ class ModelHandler():
     def save_models_weights(self):
         #tf.gfile.MkDir('{self.directory}/models-{self.model_iteration}'.format(self=self))
         #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
+        '''
         tf.gfile.MkDir('{self.directory}/models-weights/'.format(self=self))
         models_dir = '{self.directory}/models-weights/'.format(self=self)
         for i in range(0, self.n_blocks):
@@ -279,7 +294,17 @@ class ModelHandler():
                     resolution_model[n].save_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
                                                                                                        name = model.__name__,
                                                                                                        n=self.fadein_label(n), 
-                                                                                                       res=shape[0]))
+                                                                                                       res=shape[0]))'''
+        models_dir = '{self.directory}/models-weights/'.format(self=self)
+        os.makedirs(models_dir, exist_ok=True)
+        
+        for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+            current_model:Model = self.models[model][self.current_shape][self.is_fadein]
+            os.makedirs('{models_dir}/{name}s'.format(models_dir = models_dir, name = model.__name__), exist_ok = True)
+            current_model.save_weights("{models_dir}/{name}s/{name}-x{res}-{is_fadein}.h5".format(models_dir = models_dir,
+                                                                                                  name = model.__name__,
+                                                                                                  is_fadein = self.fadein_label(self.is_fadein),
+                                                                                                  res = self.current_shape[0]))
 
     def save_models(self):  # NEED TO TEST
         tf.gfile.MkDir('{self.directory}/models/'.format(self=self))
