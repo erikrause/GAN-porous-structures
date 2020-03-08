@@ -320,18 +320,19 @@ class ModelHandler():
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
       
-    def generate_imgs(self, resolution, iteration, generator, axis, n_imgs=4, step=4, fadein=False):
+    # batch_size for static batch_size (PlaidML костыль)
+    def generate_imgs(self, resolution, iteration, generator, axis, n_imgs=4, step=4, fadein=False, batch_size=32):
         
 
         step = resolution//step
 
         if axis == 3:
-            z = np.random.normal(0, 1, (n_imgs, self.z_dim))
-            imgs_mean = np.random.random((n_imgs, 1))*2 - 1
+            z = np.random.normal(0, 1, (batch_size, self.z_dim))
+            imgs_mean = np.random.random((batch_size, 1))*2 - 1
             ax=(1,2,3)
         else:
-            z = np.random.normal(0, 1, (n_imgs, self.z_dim))
-            imgs_mean = np.random.random((n_imgs, 1))*2 - 1
+            z = np.random.normal(0, 1, (batch_size, self.z_dim))
+            imgs_mean = np.random.random((batch_size, 1))*2 - 1
             ax=(1,2)
         gen_imgs = generator.predict(z)
         rm = np.mean(gen_imgs, axis=ax)
@@ -476,7 +477,7 @@ class ModelHandler():
         print(self.current_shape)
         resolution = self.current_shape[0]
         axis = len(self.current_shape) - 1
-        self.generate_imgs(resolution, self.iteration, g_model, axis, n_imgs = 1, fadein=self.is_fadein)
+        self.generate_imgs(resolution, self.iteration, g_model, axis, n_imgs = 1, fadein=self.is_fadein, batch_size=batch_size)
         #self.sample_next(self.current_shape[0], self.iteration, 'start')  
 
         # TODO: Delete interrupt
@@ -533,16 +534,16 @@ class ModelHandler():
 
             for i in range(0, 1):
                 # Get a random batch of real images
-                imgs = self.data_loader.get_batch(batch_size//2, self.end_shape[:-1], downscale)
+                imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
                 imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
             
                 # Generate a batch of fake images
-                z = np.random.normal(0, 1, (batch_size//2, self.z_dim))
+                z = np.random.normal(0, 1, (batch_size, self.z_dim))
                 gen_imgs = g_model.predict(z)
 
                 # Train Discriminator
-                self.d_loss_real = d_model.train_on_batch(imgs, real[:batch_size//2])
-                self.d_loss_fake = d_model.train_on_batch(gen_imgs, fake[:batch_size//2])
+                self.d_loss_real = d_model.train_on_batch(imgs, real[:batch_size])
+                self.d_loss_fake = d_model.train_on_batch(gen_imgs, fake[:batch_size])
                 
 
             ##############################
@@ -603,7 +604,7 @@ class ModelHandler():
                 self.save_metrics()
                 self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
-                self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein)
+                self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein, batch_size=batch_size)
                 #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
