@@ -355,11 +355,11 @@ class Discriminator(Model):
         #d = LeakyReLU(alpha = self.alpha)(d) 
         #d = AveragePooling2D()(d)
 
-        #d = MinibatchStdev()(input_img)
+        d = MinibatchStdev()(input_img)
         #d = MinibatchStatConcatLayer()(input_img)
         #d = minibatch_std_layer(input_img)
 
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = self.conv(64, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = self.pool()(d)
