@@ -135,29 +135,25 @@ def __add_discriminator_block(old_model, n_input_layers, n_filters, filter_size)
 
     return [straight_model, fadein_model]
 
-def __add_generator_block(old_model, n_filters=64, filter_size=3):
+def __add_generator_block(old_model, n_filters, filter_size):
     # get the end of the last block
     block_end = old_model.layers[-3].output
     conv = old_model.conv
     upsample = old_model.upsample
 
-    n_filters = n_filters // 2
     # upsample and define new block
     upsampling = upsample()(block_end)
     g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(upsampling)
-    #g = BatchNormalization()(g)
+    g = BatchNormalization()(g)
     g = LeakyReLU(base_models.alpha)(g)
-    g = PixelNormLayer()(g)
-    #g = upsample()(g)
 
     g = conv(n_filters, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
-    #g = BatchNormalization()(g)
+    g = BatchNormalization()(g)
     g = LeakyReLU(base_models.alpha)(g)
-    g = PixelNormLayer()(g)
     #g = upsample()(g)
     
     # add new output layer
-    g = conv(1, kernel_size=1, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    g = conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
     out_image = Activation('tanh')(g)
     # define model
     straight_model = base_models.Generator(inputs=old_model.inputs,

@@ -145,10 +145,10 @@ class Generator(Model):
         self.dims = len(self.start_img_shape) - 1
 
         if self.dims == 3:
-            self.conv = Conv3D
+            self.conv = Conv3DTranspose
             self.upsample = UpSampling3D
         elif self.dims == 2:
-            self.conv = Conv2D
+            self.conv = Conv2DTranspose
             self.upsample = UpSampling2D
 
         if outputs == None:
@@ -159,7 +159,7 @@ class Generator(Model):
 
     def __build(self, z_dim):
   
-        input_Z = Input(shape=(z_dim,))
+        input_Z = Input(batch_shape=(16,z_dim))
         #input_C = Input(shape=(1,))
 
         #combined = Concatenate()([input_Z, input_C])
@@ -175,22 +175,31 @@ class Generator(Model):
         hidden_shape.append(64)
         hidden_shape = tuple(hidden_shape)
 
+        hidden_shape = (16,1,1,1,512)
+        units = 512
+
         #g = PixelNormLayer()(input_Z)
         g = Dense(units)(input_Z)
         g = LeakyReLU(alpha)(g)
         #g = PixelNormLayer()(g)
-        g = Reshape(hidden_shape)(g)
+        g = Reshape((1,1,1,512))(g)
         #g = self.upsample()(g)
 
-        #g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        #g = BatchNormalization()(g)
-        #g = LeakyReLU(alpha)(g)
+        g = self.conv(512, kernel_size=4, strides=1, padding='valid', kernel_initializer = weight_init)(g)
+        g = BatchNormalization()(g)
+        g = LeakyReLU(alpha)(g)
 
-        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        #g = self.upsample()(g)
+
+        g = self.conv(128, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha)(g)
         #g = PixelNormLayer()(g)
         g = self.upsample()(g)
+        
+        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = BatchNormalization()(g)
+        g = LeakyReLU(alpha)(g)
 
         #g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         #g = BatchNormalization()(g)
@@ -338,7 +347,7 @@ class Discriminator(Model):
 
     def __build(self, img_shape:tuple):
 
-        input_img = Input(shape = img_shape)
+        input_img = Input(batch_shape=(16,8,8,8,1))#img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
         #d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
@@ -350,33 +359,33 @@ class Discriminator(Model):
         #d = MinibatchStatConcatLayer()(input_img)
         #d = minibatch_std_layer(input_img)
 
-        #d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
-        #d = BatchNormalization()(d)
-        #d = LeakyReLU(alpha = self.alpha)(d)
-        #d = self.pool()(d)
+        d = self.conv(64, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(input_img)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
+        d = self.pool()(d)
 
-        #d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(input_img)
-        #d = BatchNormalization()(d)
-        #d = LeakyReLU(alpha = self.alpha)(d)
+        d = self.conv(128, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
 
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(input_img)
+        d = self.conv(512, kernel_size=4, strides = 1, padding='valid', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         
-        d = self.pool()(d)
+        #d = self.pool()(d)
     
         d = Flatten()(d)
 
         #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(64, kernel_initializer = weight_init, name='dense')(d)
+        d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         #d = Dropout(rate = self.droprate)(d)
 
-        d = Dense(64, kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
+        #d = Dense(64, kernel_initializer = weight_init)(d)
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
     
         d = Dense(1, activation='sigmoid')(d) 
 
