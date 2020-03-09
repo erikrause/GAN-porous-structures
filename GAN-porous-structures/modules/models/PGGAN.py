@@ -283,7 +283,7 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
     
     # debug
     print(n_filters)
-    print(old_model.summary())
+    #print(old_model.summary())
     # New block/
     d = conv(n_filters//2, 
                kernel_size=filter_size, 
