@@ -610,8 +610,8 @@ class ModelHandler():
                 # Output training progress
                 print("%d [D loss: %f, D acc: %.2f%%] [G loss: %f] [Time: %f.4]" %
                       (self.iteration, self.d_loss,  self.d_acc, self.g_loss, iteration_time))
-                print('Discriminator learning rate: ', backend.get_value(d_model.optimizer.lr))
-                print('GAN learning rate: ', backend.get_value(gan_model.optimizer.lr))
+                #print('Discriminator learning rate: ', backend.get_value(d_model.optimizer.lr))
+                #print('Generator learning rate: ', backend.get_value(gan_model.optimizer.lr))
                 # Output a sample of generated image
                 #sample_images(generator)
                 # Get alpha for debug:
@@ -667,6 +667,6 @@ class ModelHandler():
     def __get_alpha(self, model):
         for layer in model.layers:
             if isinstance(layer, pggan.WeightedSum):
-                print(backend.get_value(layer.alpha))
+                print("Fadein alpha: ", backend.get_value(layer.alpha))
 
     #def get_models(self, resolution)
