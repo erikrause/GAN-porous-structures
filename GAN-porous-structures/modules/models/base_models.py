@@ -354,9 +354,10 @@ class Discriminator(Model):
         d = MinibatchStatConcatLayer()(d)   # MSC-BUAA
         #d = minibatch_std_layer(d)     # Manning
 
-        #d = self.conv(64, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
+        #d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
         #d = BatchNormalization()(d)
         #d = LeakyReLU(alpha = self.alpha)(d)
+        #d = self.pool()(d)
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
