@@ -40,7 +40,7 @@
     <Compile Include="modules\preprocess.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="modules\models\pggan-temp.py">
+    <Compile Include="modules\models\pggan.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="modules\models\base_models.py">
