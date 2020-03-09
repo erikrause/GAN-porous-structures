@@ -269,63 +269,50 @@ def __add_critic_block(old_model, n_input_layers=5, n_filters=64, filter_size=3)
 
     return [straight_model, fadein_model]
 
-def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=4,):
-    #old_input_shape = list(old_model.input_shape) #get_input_shape_at(0)
-    old_input_shape = list(old_model.get_input_shape_at(0))
-    old_img_shape = old_input_shape[1:-1]
-    new_img_shape = tuple(2*x for x in old_img_shape)   #shape without channels
-    new_img_shape = list(new_img_shape)       
-    new_img_shape.append(1)                             #add chanel shape
-    new_img_shape = tuple(new_img_shape)   
+def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=4):
 
-    #input_img_shape = (old_input_shape[0][-2]*2, 
-                   #old_input_shape[0][-2]*2, 
-                   #old_input_shape[0][-1])      # Need to refactor
-    input_img = Input(shape=new_img_shape)
+    input_shape = list(old_model.get_input_shape_at(0))
+    for i in range(1,4):
+        input_shape[i] = input_shape[i]*2
+
+    new_img_shape = input_shape[1:]
+
+    input_img = Input(batch_shape=input_shape)    # was new_img_shape
 
     conv = old_model.conv
     pool = old_model.pool
     
-    # New block/
+    # debug
     print(n_filters)
-    
-    #d = conv(n_filters, 
-    #           kernel_size=1, 
-    #           strides=1, 
-    #           padding='same', 
-    #           kernel_initializer=base_models.weight_init)(input_img)
-    #d = LeakyReLU(alpha=0.02)(d)
+    print(old_model.summary())
+    # New block/
+    d = conv(n_filters//2, 
+               kernel_size=filter_size, 
+               strides=1, 
+               padding='same', 
+               kernel_initializer=base_models.weight_init)(input_img)
+    d = BatchNormalization()(d)
+    d = LeakyReLU(base_models.alpha)(d)
+
+    #n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
+    #kernel_size_last = old_model.layers[1].kernel_size
 
     d = conv(n_filters, 
                kernel_size=filter_size, 
                strides=1, 
                padding='same', 
-               kernel_initializer=base_models.weight_init)(input_img)
-    #d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.02)(d)
-    d = pool()(d)
-
-    n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
-    kernel_size_last = old_model.layers[1].kernel_size
-
-    d = conv(n_filters_last, 
-               kernel_size=filter_size, 
-               strides=1, 
-               padding='same', 
                kernel_initializer=base_models.weight_init)(d)
     d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.02)(d)
-    d = Dropout(rate = 0.2)(d)
+    d = LeakyReLU(base_models.alpha)(d)
     #d = pool()(d)   
 
     
-    d = conv(n_filters_last,
-               kernel_size = kernel_size_last, 
+    d = conv(n_filters,
+               kernel_size=filter_size, 
                strides=1, padding='same', 
                kernel_initializer=base_models.weight_init)(d)
     d = BatchNormalization()(d)
-    d = LeakyReLU(alpha=0.02)(d)
-    d = Dropout(rate = 0.2)(d)
+    d = LeakyReLU(base_models.alpha)(d)
     d = pool()(d)   
     
     block_new = d
@@ -343,6 +330,7 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
         else:
             d = current_layer(d)
 
+        # debug
         prob = current_layer.get_weights()
         
     straight_model = base_models.Discriminator(img_shape=new_img_shape,
@@ -373,8 +361,14 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
                                       inputs=input_img, 
                                       outputs=d)
 
+    print("fadein:")
+    print(fadein_model.summary())
+    print("straight:")
+    print(straight_model.summary())
+
     return [straight_model, fadein_model]
 
+'''
 shape = (16,16,16,1)
 # ЗАГЛУШКИ!!!
 def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=4,):
@@ -384,3 +378,4 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
 def __add_generator_block(old_model, n_filters=64, filter_size=3):
     model = base_models.Generator(70, shape)
     return [model, model]
+'''
