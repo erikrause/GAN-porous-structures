@@ -8,10 +8,11 @@ from keras.models import Model
 from keras.optimizers import Adam, RMSprop
 from keras import backend
 #import tensorflow as tf
-
+from modules.models.layers import *
 from keras.initializers import RandomNormal
 from keras.constraints import Constraint
 #from keras.constraints import MinMaxNorm
+from keras import initializers
 
 from keras.layers.merge import _Merge
 
@@ -22,6 +23,7 @@ global dis_opt
 global weight_init
 global lr
 global dis_lr
+global alpha
 
 constraint = None
 clip_value = 0.01
@@ -32,7 +34,8 @@ dis_lr = lr*2
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
 opt = Adam(lr=lr)        # from Progressive growing GAN paper
 dis_opt = Adam(lr=dis_lr)
-weight_init = RandomNormal(stddev=0.02)
+weight_init = initializers.he_normal()  #RandomNormal(stddev=0.02)
+alpha = 0.2
 
 # clip model weights to a given hypercube (vanilla WGAN)
 class ClipConstraint(Constraint):
@@ -59,6 +62,81 @@ else:
 
 def wasserstein_loss(y_true, y_pred):
 	return backend.mean(y_true * y_pred)
+# mini-batch standard deviation layer
+class MinibatchStdev(Layer):
+    # initialize the layer
+    def __init__(self, **kwargs):
+        super(MinibatchStdev, self).__init__(**kwargs)
+
+    # perform the operation
+    def call(self, inputs):
+        # calculate the mean value for each pixel across channels
+        mean = backend.mean(inputs, axis=0, keepdims=True)
+        # calculate the squared differences between pixel values and mean
+        squ_diffs = backend.square(inputs - mean)
+        # calculate the average of the squared differences (variance)
+        mean_sq_diff = backend.mean(squ_diffs, axis=0, keepdims=True)
+        # add a small value to avoid a blow-up when we calculate stdev
+        mean_sq_diff += 1e-8
+        # square root of the variance (stdev)
+        stdev = backend.sqrt(mean_sq_diff)
+        # calculate the mean standard deviation across each pixel coord
+        mean_pix = backend.mean(stdev, keepdims=True)
+        # scale this up to be the size of one input feature map for each sample
+        shape = backend.shape(inputs)
+        output = backend.tile(mean_pix, (shape[0], shape[1], shape[2], shape[3], 1))
+        # concatenate with the output
+        combined = backend.concatenate([inputs, output], axis=-1)
+        return combined   # was combined
+
+	# define the output shape of the layer
+    def compute_output_shape(self, input_shape):
+        # create a copy of the input shape as a list
+        input_shape = list(input_shape)
+        # add one to the channel dimension (assume channels-last)
+        input_shape[-1] += 1
+        # convert list to a tuple
+        return tuple(input_shape)
+
+def minibatch_std_layer(layer, group_size=4):
+    '''
+    Will calculate minibatch standard deviation for a layer.
+    Will do so under a pre-specified tf-scope with Keras.
+    Assumes layer is a float32 data type. Else needs validation/casting.
+    NOTE: there is a more efficient way to do this in Keras, but just for
+    clarity and alignment with major implementations (for understanding) 
+    this was done more explicitly. Try this as an exercise.
+    '''
+    # Hint!
+    # If you are using pure Tensorflow rather than Keras, always remember scope
+    # minibatch group must be divisible by (or <=) group_size
+    group_size = K.minimum(group_size, K.shape(layer)[0])
+
+    # just getting some shape information so that we can use
+    # them as shorthand as well as to ensure defaults
+    input = layer
+    shape = list(K.int_shape(input))
+    shape[0] = K.shape(input)[0]
+
+    # Reshaping so that we operate on the level of the minibatch
+    # in this code we assume the layer to be:
+    # [Group (G), Minibatch (M), Width (W), Height (H) , Channel (C)]
+    # but be careful different implementations use the Theano specific
+    # order instead
+    minibatch = K.reshape(layer, (group_size, -1, shape[1], shape[2], shape[3], shape[4]))
+
+    # Center the mean over the group [M, W, H, C]
+    minibatch -= K.mean(minibatch, axis=0, keepdims=True)
+    # Calculate the variance of the group [M, W, H, C]
+    minibatch = K.mean(K.square(minibatch), axis = 0)
+    # Calculate the standard deviation over the group [M,W,H,C]
+    minibatch = K.square(minibatch + 1e8)
+    # Take average over feature maps and pixels [M,1,1,1]
+    minibatch = K.mean(minibatch, axis=[1,2,3], keepdims=True)
+    # Add as a layer for each group and pixels
+    minibatch = K.tile(minibatch, [group_size, shape[1], shape[2], shape[3], shape[4]])
+    # Append as a new feature map
+    return K.concatenate([layer, minibatch], axis=1)
 
 class Generator(Model):
     def __init__(self, inputs, start_img_shape, outputs = None):
@@ -81,14 +159,14 @@ class Generator(Model):
 
     def __build(self, z_dim):
   
-        input_Z = Input(shape=(z_dim,))
+        input_Z = Input(batch_shape=(16,z_dim))
         #input_C = Input(shape=(1,))
 
         #combined = Concatenate()([input_Z, input_C])
 
         units = 64
         channels = self.start_img_shape[-1]   #?
-        hidden_shape = tuple(x//(2*2) for x in (self.start_img_shape[:-1]))
+        hidden_shape = tuple(x//(2) for x in (self.start_img_shape[:-1]))
         for i in range(self.dims):
             units = units * hidden_shape[i]
         unints = units * channels   # channles не используется!
@@ -97,23 +175,38 @@ class Generator(Model):
         hidden_shape.append(64)
         hidden_shape = tuple(hidden_shape)
 
+        #hidden_shape = (16,1,1,1,512)
+        #units = 512
+
+        #g = PixelNormLayer()(input_Z)
         g = Dense(units)(input_Z)
+        g = LeakyReLU(alpha)(g)
+        #g = PixelNormLayer()(g)
         g = Reshape(hidden_shape)(g)
+        #g = self.upsample()(g)
+
+        #g = self.conv(128, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        #g = BatchNormalization()(g)
+        #g = LeakyReLU(alpha)(g)
+        #g = PixelNormLayer()(g)
+
+        g = self.upsample()(g)
 
         g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
-        g = ReLU()(g)
-        g = self.upsample()(g)
-  
-        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        g = BatchNormalization()(g)
-        g = ReLU()(g)
+        g = LeakyReLU(alpha)(g)
+        #g = PixelNormLayer()(g)
         #g = self.upsample()(g)
 
         g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
-        g = ReLU()(g)
-        g = self.upsample()(g)
+        g = LeakyReLU(alpha)(g)
+  
+        #g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        #g = BatchNormalization()(g)
+        #g = LeakyReLU(alpha)(g)
+        #g = PixelNormLayer()(g)
+        #g = self.upsample()(g)
     
         g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         img = Activation('tanh')(g)
@@ -237,7 +330,7 @@ class Discriminator(Model):
             self.pool = AveragePooling2D
 
         if outputs == None:
-            self.alpha = 0.2
+            self.alpha=0.2
             self.droprate = droprate
             model = self.__build(img_shape)
             Model.__init__(self, model.inputs, model.outputs)
@@ -250,39 +343,40 @@ class Discriminator(Model):
 
     def __build(self, img_shape:tuple):
 
-        input_img = Input(shape = img_shape)
+        input_img = Input(batch_shape=(16,8,8,8,1))#img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
-        d = self.conv(32, kernel_size=1, strides = 1, padding='same', name='concat_layer')(input_img)
+        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
+        d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d) 
-        #d = AveragePooling2D()(d)
-    
-        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        #d = Dropout(rate = self.droprate)(d)
-        d = self.pool()(d)
 
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
-        d = Dropout(rate = self.droprate)(d)
+        #d = MinibatchStdev()(d)
+        d = MinibatchStatConcatLayer()(d)   # MSC-BUAA
+        #d = minibatch_std_layer(d)     # Manning
+
+        #d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
         #d = self.pool()(d)
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        #d = Dropout(rate = self.droprate)(d)
+        d = self.pool()(d)
+
+        #d = self.conv(128, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
+        
         #d = self.pool()(d)
     
         d = Flatten()(d)
 
         #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        #d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
-        #d = BatchNormalization()(d)
-        #d = ReLU()(d)
-        #d = Dropout(rate = self.droprate)(d)
+        d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
+        d = BatchNormalization()(d)
+        d = LeakyReLU(alpha = self.alpha)(d)
     
         d = Dense(1, activation='sigmoid')(d) 
 

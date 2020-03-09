@@ -20,21 +20,23 @@ import numpy as np
 
 # Start input image resolution
 channels = 1        # 1 - черно-белое изображение
-start_shape = (16,16,16,channels)
-z_dim = 70         # Для сложных данных увеличить z_dim
-n_blocks = 4        # Количество повышений разрешения. End_shape = start_shape*n_blocks
-is_nearest = False   #
+start_shape = (8,8,8,channels)
+z_dim = 256         # Для сложных данных увеличить z_dim
+n_blocks = 5        # Количество повышений разрешения. End_shape = start_shape*n_blocks
+is_nearest = False   # Алгоритм понижения разрешения датасета. False = Avgpoolng: True = MaxPooling.
 
 # Filters for each resolution block (from hidden layers to end resolution layers):
-n_filters = {1: 16,
-             2: 8,
-             3: 4,
-             4: 2}    
+n_filters = {1: 32,
+             2: 16,
+             3: 8,
+             4: 4,
+             5: 2}    
 
 filter_sizes = {1: 3,
                 2: 3,
                 3: 3,
-                4: 5}      
+                4: 3,
+                5: 3}      
 
 # 'directory_name/' (слэш только в конце названия папки!).
 DIRECTORY = ''
@@ -54,12 +56,12 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters,
 # MAIN LOOP
 ######################################
 
-batch_size = 8
+batch_size = 16
 sample_interval = 100    # должно быть кратно итерациям
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 2500, 3500, 10000, 14000])
 #n_straight = np.array([3400, 6000, 30000, 80000, 200000])
-n_fadein = np.array([0, 40000, 3500, 10000, 14000])
-n_straight = np.array([28000, 6000, 30000, 80000, 200000])
+n_fadein = np.array([0, 10000, 5000, 50000, 14000])
+n_straight = np.array([15000, 11600, 50000, 80000, 200000])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
