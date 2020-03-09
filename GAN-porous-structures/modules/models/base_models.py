@@ -377,7 +377,6 @@ class Discriminator(Model):
         d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
         d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
-        #d = Dropout(rate = self.droprate)(d)
     
         d = Dense(1, activation='sigmoid')(d) 
 

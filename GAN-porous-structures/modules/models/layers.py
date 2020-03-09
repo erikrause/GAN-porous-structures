@@ -3,7 +3,7 @@ from keras.engine.topology import InputSpec
 from keras.engine.topology import Layer
 from keras.layers.merge import _Merge
 from keras import activations
-import tensorflow as tf
+#import tensorflow as tf
 import numpy as np
 
 

@@ -519,9 +519,8 @@ class ModelHandler():
             
             start_time = time.time()
             if self.is_fadein:
-                #prob1 = time.time()
-                alpha = pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
-                #prob2 = time.time() - prob1
+                #alpha = pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
+                alpha = pggan.update_lod(g_model, d_model, self.iteration, iterations)
                 #pggan.update_fadein([g_model, d_model, gan_model], 1, 2) 
             #print('fadein time: ', prob2)
             # -------------------------
@@ -614,8 +613,10 @@ class ModelHandler():
                 #print('Generator learning rate: ', backend.get_value(gan_model.optimizer.lr))
                 # Output a sample of generated image
                 #sample_images(generator)
+
                 # Get alpha for debug:
-                self.__get_alpha(d_model)
+                #self.__get_alpha(d_model)
+                self.__get_lod(d_model)
 
                 #print('update lr time: ', lr_time)
 
@@ -668,5 +669,9 @@ class ModelHandler():
         for layer in model.layers:
             if isinstance(layer, pggan.WeightedSum):
                 print("Fadein alpha: ", backend.get_value(layer.alpha))
+        #for debug:
+    def __get_lod(self, model):
+        if hasattr(model, 'cur_lod'): 
+            print("Fadein alpha: ", backend.get_value(model.cur_lod))
 
     #def get_models(self, resolution)

@@ -45,6 +45,25 @@ def update_fadein(models, step, n_steps, alpha = -1):
                         alpha = current_alpha + dalpha
                 backend.set_value(layer.alpha, alpha)
     return alpha
+def update_lod(g_model, d_model, step, n_steps, alpha = -1):
+    # calculate current alpha (linear from 0 to 1)
+    if alpha == -1:
+        #current_alpha = backend.eval(layer.alpha)#K.get_value(layer.alpha)
+        current_alpha = backend.get_value(d_model.cur_lod)
+        remaining_alpha = 1 - current_alpha
+        remaining_steps = n_steps - step
+        if remaining_steps == 0:
+            alpha = 1.0
+        else:
+            #alpha = step / float(n_steps - 1)
+            dalpha = remaining_alpha / remaining_steps
+            alpha = current_alpha + dalpha
+
+        if hasattr(g_model, 'cur_lod'): 
+                    backend.set_value(g_model.cur_lod,np.float32(alpha))
+        if hasattr(d_model, 'cur_lod'): 
+                    backend.set_value(d_model.cur_lod,np.float32(alpha))
+    return alpha
 
 def add_block(old_model, n_filters=64, filter_size=3):
     models = []
@@ -163,13 +182,18 @@ def __add_generator_block(old_model, n_filters, filter_size):
     #out_old = old_model.layers[-2]#[-1]
     # connect the upsampling to the old output layer
     #out_old = out_old(upsampling)
-    out_image2 = upsample()(old_model.layers[-1].output)
-    # define new output image as the weighted sum of the old and new models
-    merged = WeightedSum()([out_image2, out_image])
+
+    #out_image2 = upsample()(old_model.layers[-1].output)
+    cur_lod = K.variable(np.float(0.0), dtype='float32', name='cur_lod')
+    merged = LODSelectLayer(cur_lod, name='Glod')([out_image, old_model.layers[-1].output])
+    ## define new output image as the weighted sum of the old and new models
+    #merged = WeightedSum()([out_image2, out_image])        # может сввпнуть?
+
     # define model
     fadein_model = base_models.Generator(inputs=old_model.inputs,
                                          start_img_shape=old_model.start_img_shape,
                                          outputs=merged)
+    fadein_model.cur_lod = cur_lod
     return [straight_model, fadein_model]
 
 def __add_gan_block(discriminators, generators):
@@ -282,7 +306,7 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
     pool = old_model.pool
     
     # debug
-    print(n_filters)
+    #print(n_filters)
     #print(old_model.summary())
     # New block/
     d = conv(n_filters//2, 
@@ -340,7 +364,9 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
     for i in range(1, n_input_layers):
         block_old = old_model.layers[i](block_old)
     
-    d = WeightedSum()([block_old, block_new])
+    #d = WeightedSum()([block_old, block_new])
+    cur_lod = K.variable(np.float32(0.0), dtype='float32', name='cur_lod')
+    d = LODSelectLayer(cur_lod, name='Glod')([block_new, block_old])
     
     for i in range(n_input_layers, len(old_model.layers)):
         current_layer = old_model.layers[i]
@@ -357,6 +383,8 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
     fadein_model = base_models.Discriminator(img_shape=new_img_shape, 
                                       inputs=input_img, 
                                       outputs=d)
+
+    fadein_model.cur_lod = cur_lod
 
     print("fadein:")
     print(fadein_model.summary())
