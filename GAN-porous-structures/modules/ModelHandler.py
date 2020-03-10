@@ -406,12 +406,13 @@ class ModelHandler():
         is_straight = not self.is_fadein
         int_straight = int(is_straight) # реверс
 
+        # Загрузка моделей для текущего resolution из словаря
         models = []
         for model in [base_models.Discriminator, base_models.Generator,base_models.WGAN]:
             models.append(self.models[model][self.current_shape][self.is_fadein])
-        d_model = models[0]
-        g_model = models[1]
-        gan_model = models[2]
+        d_model:base_models.Discriminator = models[0]
+        g_model:base_models.Generator = models[1]
+        wgan:base_models.WGAN = models[2]
 
         d_model.summary()
         plot_model(d_model, 
@@ -421,10 +422,17 @@ class ModelHandler():
         plot_model(g_model, 
                    to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self), 
                    show_shapes=True)
+        plot_model(wgan.critic_model,
+                   to_file='{self.directory}/models_diagrams/critic_model-{self.model_iteration}.png'.format(self=self), 
+                   show_shapes=True)
+        plot_model(wgan.generator_model, 
+                   to_file='{self.directory}/models_diagrams/generator_model-{self.model_iteration}.png'.format(self=self), 
+                   show_shapes=True)
         alpha = -1
         # Labels for real/fake imgs
-        real = np.ones((batch_size, 1))
-        fake = np.zeros((batch_size, 1))
+        real = -np.ones((batch_size, 1))
+        fake = np.ones((batch_size, 1))
+        dummy = np.zeros((batch_size, 1))
 
         print('Training-{}-{}-model/'.format(self.model_iteration, int_fadein))
         print('total iterations: ', iterations)
@@ -459,6 +467,7 @@ class ModelHandler():
         iteration_checkpoints = []
         #####
 
+        # TRAIN  LOOP:
         while self.iteration < iterations and not self.is_interrupt:
             
             #current_lr = backend.get_value(d_model.optimizer.lr)
@@ -488,19 +497,26 @@ class ModelHandler():
             # ДЛЯ СТАРЫХ ВЕРСИЙ ЮЗАТЬ ЭТО:
             #resolution = d_model.inputs[0].shape[1][1]
 
-            for i in range(0, 1):
+            ########################
+            # Critic train loop
+            for i in range(0, 5):
                 # Get a random batch of real images
                 imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
                 imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
             
-                # Generate a batch of fake images
+                # Generate a batch of noizes
                 z = np.random.normal(0, 1, (batch_size, self.z_dim))
-                gen_imgs = g_model.predict(z)
+                #gen_imgs = g_model.predict(z)
 
-                # Train Discriminator
-                self.d_loss_real = d_model.train_on_batch(imgs, real[:batch_size])
-                self.d_loss_fake = d_model.train_on_batch(gen_imgs, fake[:batch_size])
-                
+                # Train the Discriminator
+                #self.d_loss_real = d_model.train_on_batch(imgs, real[:batch_size])
+                #self.d_loss_fake = d_model.train_on_batch(gen_imgs, fake[:batch_size])
+
+                # Train the critic
+                self.d_loss = wgan.critic_model.train_on_batch([imgs, z],
+                                                               [real, fake, dummy])
+            # / Critic train loop
+            #######################
 
             ##############################
             # Clipping weights (WGAN) with plaidml backend (with tf cliping will be on kernel_konstraint in models builder).
@@ -513,7 +529,7 @@ class ModelHandler():
             #             backend.clip(tensor, -clip_val, clip_val)
             ###############################
 
-            self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
+            #self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
             #self.d_loss_real = np.mean(self.d_loss_real)
             #self.d_loss_fake = np.mean(self.d_loss_fake)    
             
@@ -524,20 +540,20 @@ class ModelHandler():
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
 
             # Train Generator
-            self.g_loss = gan_model.train_on_batch(z, real)
-
-            if self.is_fadein:
-                lr = start_lr/1.1
-                dis_lr = dis_start_lr/1.1
-            else:
-                decay = (1 - (self.iteration / iterations)) ** 2    
-                lr = start_lr * decay +  + 0.00025
-                dis_lr = dis_start_lr * decay +  + 0.00025
-            prob = time.time()
+            #self.g_loss = gan_model.train_on_batch(z, real)
+            self.g_loss = wgan.generator_model.train_on_batch(z, real)
+            
+            # Learning rate decay calculating
+            #if self.is_fadein:
+            #    lr = start_lr/1.1
+            #    dis_lr = dis_start_lr/1.1
+            #else:
+            #    decay = (1 - (self.iteration / iterations)) ** 2    
+            #    lr = start_lr * decay +  + 0.00025
+            #    dis_lr = dis_start_lr * decay +  + 0.00025
 
             #backend.set_value(d_model.optimizer.lr, dis_lr)
             #backend.set_value(gan_model.optimizer.lr, lr)
-            lr_time = time.time() - prob
 
             
             end_time = time.time()
