@@ -366,7 +366,7 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
     
     #d = WeightedSum()([block_old, block_new])
     cur_lod = K.variable(np.float32(0.0), dtype='float32', name='cur_lod')
-    d = LODSelectLayer(cur_lod, name='Glod')([block_new, block_old])
+    d = LODSelectLayer(cur_lod, name='Glod')([block_old, block_new])
     
     for i in range(n_input_layers, len(old_model.layers)):
         current_layer = old_model.layers[i]

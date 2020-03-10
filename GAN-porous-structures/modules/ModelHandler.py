@@ -365,23 +365,38 @@ class ModelHandler():
             img.save('{file_name}-{e}.png'.format(file_name=file_name, e=e))
     
     # не используется (for debug)
-    def sample_next(self, resolution, iteration, description=''):
+    def sample_next(self, resolution, iteration, extension='.png'):
         for i in range(1, self.n_blocks-1):
-            resolution = 16 *2**i
+            resolution = self.start_shape[1] *2**i
             tf.gfile.MkDir('{self.samples_dir}/next/x{resolution}-norm'.format(self=self, resolution=resolution))
             tf.gfile.MkDir('{self.samples_dir}/next/x{resolution}-fade'.format(self=self, resolution=resolution))
             shape = self.upscale(self.start_shape, k = i)
             for model in [base_models.Generator]:
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
-                    self.gen_two(resolution_model[1], '/next/x{}-fade-i{}-m{}-{}'.format(resolution, iteration, self.model_iteration, description))
-                    self.gen_two(resolution_model[0], '/next/x{}-norm-i{}-m{}-{}'.format(resolution, iteration, self.model_iteration, description))
+                    self.gen_two(resolution_model[1], '/next/x{}-fade/r{}-i{}-m{}{}'.format(resolution, self.resolution_iteration, iteration, self.model_iteration, extension))
+                    self.gen_two(resolution_model[0], '/next/x{}-norm/r{}-i{}-m{}{}'.format(resolution, self.resolution_iteration, iteration, self.model_iteration, extension))
         #self.gen_two(self.generators[3][0], '/next/x128-norm{}'.format(iteration))
         #self.gen_two(self.generators[3][1], '/next/x128-fade{}'.format(iteration))
     # не используется (for debug)
-    def gen_two(self, generator, filename):
-        imgs_mean = np.array([[0.15]])
-        gen_img = generator.predict(self.z_global)
+    def gen_two(self, generator:Model, filename:str):
+        #imgs_mean = np.array([[0.15]])
+
+        # If model uses static batch_size:
+        if generator.input_shape[0] != None:
+            batch_size = generator.input_shape[0]
+            if len(self.z_global) != batch_size:
+                self.z_global = np.random.normal(0, 1, (batch_size, self.z_dim))
+            #batch = generator.input_shape[0] - 1
+
+        gen_imgs = generator.predict(self.z_global)
+        gen_imgs = (gen_imgs+1)*127.5
+        gen_imgs = gen_imgs.astype('uint8')
+
+        img = Image.fromarray(gen_imgs[0,4,:,:,0])
+        img.save(self.samples_dir + filename)
+
+        '''
         fig=plt.figure()
         plt.imshow(gen_img[0,:,:,0], cmap='gray')
         fig.savefig(self.samples_dir + filename)
@@ -392,7 +407,7 @@ class ModelHandler():
         fig=plt.figure()
         plt.imshow(gen_img[0,:,:,0], cmap='gray')
         fig.savefig(self.samples_dir + filename+' 2')
-        plt.close(fig)
+        plt.close(fig)'''
 
     def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
     
@@ -521,6 +536,10 @@ class ModelHandler():
             if self.is_fadein:
                 #alpha = pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
                 alpha = pggan.update_lod(g_model, d_model, self.iteration, iterations)
+
+                z = np.random.normal(0, 1, (batch_size, self.z_dim))
+                gen_imgs = g_model.predict(z)
+                prob = d_model.predict(gen_imgs)
                 #pggan.update_fadein([g_model, d_model, gan_model], 1, 2) 
             #print('fadein time: ', prob2)
             # -------------------------
@@ -604,7 +623,7 @@ class ModelHandler():
                 self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
                 self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein, batch_size=batch_size)
-                #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
+                self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
                 print("%d [D loss: %f, D acc: %.2f%%] [G loss: %f] [Time: %f.4]" %

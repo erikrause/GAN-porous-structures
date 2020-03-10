@@ -374,9 +374,9 @@ class Discriminator(Model):
 
         #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
+        #d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
     
         d = Dense(1, activation='sigmoid')(d) 
 
