@@ -136,7 +136,7 @@ def __add_wgan_block(discriminators, generators):
     
     return [straight_model, fadein_model]
 
-def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=4):
+def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=3):
 
     input_shape = list(old_model.get_input_shape_at(0))
     for i in range(1,4):
@@ -158,7 +158,7 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
                strides=1, 
                padding='same', 
                kernel_initializer=base_models.weight_init)(input_img)
-    d = BatchNormalization()(d)
+    #d = BatchNormalization()(d)
     d = LeakyReLU(base_models.alpha)(d)
 
     #n_filters_last = old_model.layers[1].filters  #количество старых фильтров входа
@@ -176,7 +176,7 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
                kernel_size=filter_size, 
                strides=1, padding='same', 
                kernel_initializer=base_models.weight_init)(d)
-    d = BatchNormalization()(d)
+    #d = BatchNormalization()(d)
     d = LeakyReLU(base_models.alpha)(d)
     d = pool()(d)   
     

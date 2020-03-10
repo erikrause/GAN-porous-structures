@@ -254,7 +254,7 @@ class ModelHandler():
         models_dir = '{self.directory}/models-weights/'.format(self=self)
         os.makedirs(models_dir, exist_ok=True)
         
-        for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+        for model in [base_models.Discriminator, base_models.Generator]:    #, base_models.GAN]:
             current_model:Model = self.models[model][self.current_shape][self.is_fadein]
             os.makedirs('{models_dir}/{name}s'.format(models_dir = models_dir, name = model.__name__), exist_ok = True)
             current_model.save_weights("{models_dir}/{name}s/{name}-x{res}-{is_fadein}.h5".format(models_dir = models_dir,
@@ -566,8 +566,8 @@ class ModelHandler():
                 #####
                 # Old train history plot (from manning book):
                 # Save losses and accuracies so they can be plotted after training
-                losses.append((self.d_loss, self.g_loss))
-                accuracies.append(100.0 * self.d_acc)
+                losses.append((self.d_loss[0], self.g_loss))
+                #accuracies.append(100.0 * self.d_acc)
                 iteration_checkpoints.append(self.iteration)
                 self.plot_losses(losses, iteration_checkpoints, resolution, self.is_fadein)
                 #####
@@ -576,12 +576,12 @@ class ModelHandler():
                 self.save_metrics()
                 self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
-                self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein, batch_size=batch_size)
+                self.generate_imgs(resolution, self.iteration, wgan.generator, axis, 4, fadein=self.is_fadein, batch_size=batch_size)
                 #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
-                print("%d [D loss: %f, D acc: %.2f%%] [G loss: %f] [Time: %f.4]" %
-                      (self.iteration, self.d_loss,  self.d_acc, self.g_loss, iteration_time))
+                print("%d [D loss: 1: %f 2: %f 3: %f 4: %f] [G loss: %f] [Time: %f.4]" %
+                      (self.iteration, self.d_loss[0], self.d_loss[1], self.d_loss[2], self.d_loss[3], self.g_loss, iteration_time))
                 #print('Discriminator learning rate: ', backend.get_value(d_model.optimizer.lr))
                 #print('Generator learning rate: ', backend.get_value(gan_model.optimizer.lr))
                 # Output a sample of generated image

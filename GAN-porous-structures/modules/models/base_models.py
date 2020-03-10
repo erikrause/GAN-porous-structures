@@ -379,7 +379,7 @@ class Discriminator(Model):
         #input_C = Input(shape=(1,), name='Input_C')
     
         d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
-        d = BatchNormalization()(d)
+        #d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d) 
 
         #d = MinibatchStdev()(d)
@@ -392,7 +392,7 @@ class Discriminator(Model):
         #d = self.pool()(d)
 
         d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        d = BatchNormalization()(d)
+        #d = BatchNormalization()(d)
         d = LeakyReLU(alpha = self.alpha)(d)
         d = self.pool()(d)
 
@@ -406,11 +406,11 @@ class Discriminator(Model):
 
         #combined = Concatenate(name='Concat_input_C')([d, input_C])    
 
-        d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
-        d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
+        #d = Dense(128, kernel_initializer = weight_init, name='dense')(d)
+        #d = BatchNormalization()(d)
+        #d = LeakyReLU(alpha = self.alpha)(d)
     
-        d = Dense(1, activation='sigmoid')(d) 
+        d = Dense(1, activation='linear')(d) 
 
 
         model = Model(inputs=input_img, outputs=d)
