@@ -60,10 +60,12 @@ class ModelHandler():
         self.d_losses_real = []
         self.d_losses_fake = []
         self.g_losses = []
+        self.d_losses = []  #new
         #
         # For current metrics:
         self.d_loss_real = 0
         self.d_loss_fake = 0
+        self.d_loss = 0     #new
         self.g_loss = []
         self.iteration = 0
         self.model_iteration = 0
@@ -225,10 +227,12 @@ class ModelHandler():
         self.__update_metric(self.d_loss_real, self.d_losses_real)
         self.__update_metric(self.d_loss_fake, self.d_losses_fake)
         self.__update_metric(self.g_loss, self.g_losses)
+        self.__update_metric(self.d_loss, self.d_losses)
 
         self.__to_file(self.d_losses_real, '/d_losses_real.log')
         self.__to_file(self.d_losses_fake, '/d_losses_fake.log')
         self.__to_file(self.g_losses, '/g_losses.log')
+        self.__to_file(self.d_losses, '/d_losses.log')
         self.__to_file(self.parameters, '/parameters')
         ######################
 
@@ -462,7 +466,8 @@ class ModelHandler():
 
         #####
         # Old train history plot (from manning book):
-        losses = []
+        critic_losses = []
+        gen_losses = []
         accuracies = []
         iteration_checkpoints = []
         #####
@@ -566,10 +571,11 @@ class ModelHandler():
                 #####
                 # Old train history plot (from manning book):
                 # Save losses and accuracies so they can be plotted after training
-                losses.append((self.d_loss[0], self.g_loss))
+                critic_losses.append(self.d_loss)
+                gen_losses.append(self.g_loss)
                 #accuracies.append(100.0 * self.d_acc)
                 iteration_checkpoints.append(self.iteration)
-                self.plot_losses(losses, iteration_checkpoints, resolution, self.is_fadein)
+                self.plot_losses(critic_losses, gen_losses, iteration_checkpoints, resolution, self.is_fadein)
                 #####
 
                 # Save losses and accuracies so they can be plotted after training
@@ -602,7 +608,7 @@ class ModelHandler():
 
 
 
-    def plot_losses(self, losses, iteration_checkpoints, resolution, is_fadein):
+    def plot_losses(self, critic_losses, gen_losses, iteration_checkpoints, resolution, is_fadein):
 
         fn = 'norm'
         if is_fadein:
@@ -613,12 +619,14 @@ class ModelHandler():
         #if not os.path.exists(training_plots_dir):
         os.makedirs(training_plots_dir, exist_ok=True)
 
-        losses = np.array(losses)
+        critic_losses = np.array(critic_losses)
+        gen_losses = np.array(gen_losses)
 
         # Plot training losses for Discriminator and Generator
         plt.figure(figsize=(15, 10))
-        plt.plot(iteration_checkpoints, losses.T[0], label="Discriminator loss")
-        plt.plot(iteration_checkpoints, losses.T[1], label="Generator loss")
+        plt.plot(iteration_checkpoints, critic_losses.T[0], label="Critic real loss")
+        plt.plot(iteration_checkpoints, critic_losses.T[1], label="Critic fake loss")
+        plt.plot(iteration_checkpoints, gen_losses, label="Generator loss")
 
         plt.xticks(iteration_checkpoints, rotation=90)
 

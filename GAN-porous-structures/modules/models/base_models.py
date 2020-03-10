@@ -287,7 +287,7 @@ class WGAN():
         self.generator_model.compile(loss=wasserstein_loss,
                                      optimizer=opt)
         # / END OF GENERATOR BUILD BUILD
-        #######################
+        ################################
 
 class Critic(Model):
     def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
