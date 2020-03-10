@@ -13,6 +13,7 @@ from keras.initializers import RandomNormal
 from keras.constraints import Constraint
 #from keras.constraints import MinMaxNorm
 from keras import initializers
+from functools import partial
 
 from keras.layers.merge import _Merge
 
@@ -24,6 +25,7 @@ global weight_init
 global lr
 global dis_lr
 global alpha
+global batch_size
 
 constraint = None
 clip_value = 0.01
@@ -36,6 +38,7 @@ opt = Adam(lr=lr)        # from Progressive growing GAN paper
 dis_opt = Adam(lr=dis_lr)
 weight_init = initializers.he_normal()  #RandomNormal(stddev=0.02)
 alpha = 0.2
+batch_size = 16
 
 # clip model weights to a given hypercube (vanilla WGAN)
 class ClipConstraint(Constraint):
@@ -59,9 +62,6 @@ elif current_backend == 'plaidml':
 else:
     print(' WARNING: BACKEND ' + current_backend + ' NOT SUPPORTED')
 
-
-def wasserstein_loss(y_true, y_pred):
-	return backend.mean(y_true * y_pred)
 # mini-batch standard deviation layer
 class MinibatchStdev(Layer):
     # initialize the layer
@@ -237,27 +237,55 @@ class GAN(Model):
 
         return model
 
-class WGAN(Model):
-    def __init__(self, generator, discriminator):
-        discriminator.trainable = False
-        model = self.__build(generator, discriminator)
-        Model.__init__(self, model.inputs, model.outputs)
-        self.compile(loss=wasserstein_loss, 
-                     optimizer=opt)
+class WGAN():
+    def __init__(self, generator:Model, critic:Model):
+        #discriminator.trainable = False
+        #model = self.__build(generator, discriminator)
 
-    def __build(self, generator, discriminator):
+        self.generator = generator
+        self.critic = critic
 
-        #input_Z = Input(shape=(z_dim,)) 
-        #input_C = Input(shape=(1,))
+        #########################
+        # / START OF CRITIC BUILD
+        self.generator.trainable = False
 
-        img = generator(generator.inputs)#generator([input_Z, input_C])
-    
-        # Combined Generator -> Discriminator model
-        classification = discriminator(img)
-    
-        model = Model(generator.inputs, classification)
+        noise_input = Input(batch_shape=(self.generator.input_shape))
+        fake_img = self.generator(noise_input)
+        real_img = Input(batch_shape=(self.critic.input_shape))
 
-        return model
+        fake = self.critic(fake_img)
+        valid = self.critic(real_img)
+
+        interpolated_img = RandomWeightedAverage()([real_img, fake_img])
+        validity_interpolated = self.critic(interpolated_img)
+
+        partial_gp_loss = partial(gradient_penalty_loss,
+                          averaged_samples=interpolated_img)
+        partial_gp_loss.__name__ = 'gradient_penalty' # Keras requires function names
+        
+        self.critic_model = Model(inputs=[real_img, z_disc],
+                            outputs=[valid, fake, validity_interpolated])
+        self.critic_model.compile(loss=[self.wasserstein_loss,
+                                        self.wasserstein_loss,
+                                        partial_gp_loss],
+                                        optimizer=opt)
+                                        #loss_weights=[1, 1, 10])
+        # / END OF CRITIC BUILD
+        #######################
+
+        ############################
+        # / START OF GENERATOR BUILD
+        self.critic.trainable = False
+        self.generator.trainable = True
+
+        z_gen = Input(batch_shape=(self.generator.input_shape))
+        img = self.generator(z_gen)
+        valid = self.critic(img)
+        self.generator_model = Model(z_gen, valid)
+        self.generator_model.compile(loss=wasserstein_loss,
+                                     optimizer=opt)
+        # / END OF GENERATOR BUILD BUILD
+        #######################
 
 class Critic(Model):
     def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
@@ -336,10 +364,12 @@ class Discriminator(Model):
             Model.__init__(self, model.inputs, model.outputs)
         elif outputs != None:
             Model.__init__(self, inputs, outputs)
+        
+        #Original GAN (needs batchnorm layers):
+        #self.compile(loss='binary_crossentropy',
+        #             metrics=['accuracy'],
+        #             optimizer=dis_opt)
 
-        self.compile(loss='binary_crossentropy',
-                     metrics=['accuracy'],
-                     optimizer=dis_opt)
 
     def __build(self, img_shape:tuple):
 
@@ -392,7 +422,7 @@ class RandomWeightedAverage(_Merge):
     think of. Improvements appreciated."""
 
     def _merge_function(self, inputs):
-        weights = K.random_uniform((BATCH_SIZE, 1, 1, 1))
+        weights = K.random_uniform((batch_size, 1, 1, 1, 1))
         return (weights * inputs[0]) + ((1 - weights) * inputs[1])
 
 def gradient_penalty_loss(y_true, y_pred, averaged_samples,
@@ -430,3 +460,18 @@ def gradient_penalty_loss(y_true, y_pred, averaged_samples,
     gradient_penalty = gradient_penalty_weight * K.square(1 - gradient_l2_norm)
     # return the mean as loss over all the batch samples
     return K.mean(gradient_penalty)
+
+def wasserstein_loss(y_true, y_pred):
+    """Calculates the Wasserstein loss for a sample batch.
+    The Wasserstein loss function is very simple to calculate. In a standard GAN, the
+    discriminator has a sigmoid output, representing the probability that samples are
+    real or generated. In Wasserstein GANs, however, the output is linear with no
+    activation function! Instead of being constrained to [0, 1], the discriminator wants
+    to make the distance between its output for real and generated samples as
+    large as possible.
+    The most natural way to achieve this is to label generated samples -1 and real
+    samples 1, instead of the 0 and 1 used in normal GANs, so that multiplying the
+    outputs by the labels will give you the loss immediately.
+    Note that the nature of this loss means that it can be (and frequently will be)
+    less than 0."""
+    return K.mean(y_true * y_pred)
