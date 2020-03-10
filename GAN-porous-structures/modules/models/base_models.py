@@ -249,8 +249,8 @@ class WGAN():
         # / START OF CRITIC BUILD
         self.generator.trainable = False
 
-        noise_input = Input(batch_shape=(self.generator.input_shape))
-        fake_img = self.generator(noise_input)
+        z_disc = Input(batch_shape=(self.generator.input_shape))
+        fake_img = self.generator(z_disc)
         real_img = Input(batch_shape=(self.critic.input_shape))
 
         fake = self.critic(fake_img)
@@ -259,14 +259,16 @@ class WGAN():
         interpolated_img = RandomWeightedAverage()([real_img, fake_img])
         validity_interpolated = self.critic(interpolated_img)
 
+        GRADIENT_PENALTY_WEIGHT = 10
         partial_gp_loss = partial(gradient_penalty_loss,
-                          averaged_samples=interpolated_img)
+                          averaged_samples=interpolated_img,
+                          gradient_penalty_weight = GRADIENT_PENALTY_WEIGHT)
         partial_gp_loss.__name__ = 'gradient_penalty' # Keras requires function names
         
         self.critic_model = Model(inputs=[real_img, z_disc],
                             outputs=[valid, fake, validity_interpolated])
-        self.critic_model.compile(loss=[self.wasserstein_loss,
-                                        self.wasserstein_loss,
+        self.critic_model.compile(loss=[wasserstein_loss,
+                                        wasserstein_loss,
                                         partial_gp_loss],
                                         optimizer=opt)
                                         #loss_weights=[1, 1, 10])

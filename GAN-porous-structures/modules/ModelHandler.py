@@ -138,11 +138,6 @@ class ModelHandler():
 
     # не используется
     def check_model_files(self):
-        #for i in range(0, n_blocks):
-            #discriminators[i][0].load_weights('E:/Практика/beadpack/History-x64-fadein-8k/discriminators/normal_discriminator-{}.h5'.format(i))
-            #discriminators[i][1].load_weights('E:/Практика/beadpack/History-x64-fadein-8k/discriminators/fadein_discriminator-{}.h5'.format(i))         
-            #generators[i][0].load_weights('E:/Практика/beadpack/History-x64-fadein-8k/generators/normal_generator-{}.h5'.format(i))
-            #generators[i][1].load_weights('E:/Практика/beadpack/History-x64-fadein-8k/generators/fadein_generator-{}.h5'.format(i))
             models_count = len(discriminators)
             return __check_file('/discriminators/normal_discriminator-{}.h5'.format(models_count))
 
@@ -152,61 +147,35 @@ class ModelHandler():
         else:
             return 'straight'
 
+    # Закружает весовые коэф. из файлов в собранные программой модели (модели хранятся в self.models:dict)
     def load_models_weights(self):
-        #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
-        '''
+
         models_dir = '{self.directory}/models-weights/'.format(self=self)
-        for i in range(0, self.n_blocks):
-            shape = self.upscale(self.start_shape, k = i)
-            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-                shape = self.upscale(self.start_shape, k = i)
-                resolution_model = self.models[model][shape]
-                for n in range(0, len(resolution_model)):
-                    resolution_model[n].load_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
-                                                                                                       name = model.__name__,
-                                                                                                       n=self.fadein_label(n), 
-                                                                                                       res=shape[0]))
-        '''
-        models_dir = '{self.directory}/models-weights/'.format(self=self)
-        for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+        for model in [base_models.Discriminator, base_models.Generator]:    #, base_models.GAN]:
             current_model:Model = self.models[model][self.current_shape][self.is_fadein]
             current_model.load_weights("{models_dir}/{name}s/{name}-x{res}-{is_fadein}.h5".format(models_dir=models_dir,
                                                                                                   name = model.__name__,
                                                                                                   is_fadein=self.fadein_label(self.is_fadein),
                                                                                                   res=self.current_shape[0]))
-
+    # Загружает модели из файлов (не используается).
     def load_models(self):
         # NEED TO TEST:
         models_dir = '{self.directory}/models/'.format(self=self)
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
-            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
+            for model in [base_models.Discriminator, base_models.Generator]:    #, base_models.GAN]:
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
                     resolution_model[n].load('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
                                                                                                        name = model.__name__,
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
-
-
-    ###########
-    # Это используется?
-    '''
-    def load_models_weights_from_dir(self, weights_dir):
-        for i in range(0, self.n_blocks):
-            self.discriminators[i][0].load_weights('{}/discriminators/normal_discriminator-{}.h5'.format(weights_dir, i))
-            self.discriminators[i][1].load_weights('{}/discriminators/fadein_discriminator-{}.h5'.format(weights_dir, i))
-            self.generators[i][0].load_weights('{}/generators/normal_generator-{}.h5'.format(weights_dir, i))
-            self.generators[i][1].load_weights('{}/generators/fadein_generator-{}.h5'.format(weights_dir, i))
-            self.gans[i][0].load_weights('{}/gans/normal_gan-{}.h5'.format(weights_dir, i))
-            self.gans[i][1].load_weights('{}/gans/fadein_gan-{}.h5'.format(weights_dir, i))
-            '''
-
+    # Собирает и компилирует модели в self.models:dict, сортируя их по resolution и is_fadein.
     def build_models(self, start_shape:tuple, z_dim:int, n_filters:np.array, filter_sizes:np.array):
         # Build base models/
-        models = [base_models.Discriminator, base_models.Generator, base_models.GAN]
+        models = [base_models.Discriminator, base_models.Generator, base_models.WGAN]
         for model in models:
-            if model == base_models.GAN:
+            if model == base_models.WGAN:
                 dis_last = self.models[base_models.Discriminator][start_shape][0]
                 gen_last = self.models[base_models.Generator][start_shape][0]
                 base_model = model(gen_last, dis_last)
@@ -226,7 +195,7 @@ class ModelHandler():
                 last_model = self.models[model][last_shape][0]
                 
                 filters = n_filters[i]
-                if model  == base_models.GAN:
+                if model  == base_models.WGAN:
                     last_discriminators = self.models[base_models.Discriminator][new_shape]
                     last_generators = self.models[base_models.Generator][new_shape]
                     last_model = [last_discriminators, last_generators]
@@ -241,6 +210,7 @@ class ModelHandler():
             
 
     def upscale(self, shape:tuple, k = 1):
+
         new_shape = list(shape)
         dims = len(shape) - 1
         for n in range(0, k):
@@ -248,11 +218,9 @@ class ModelHandler():
                 new_shape[i] = new_shape[i]*2
 
         return tuple(new_shape)
-
-    #def get_generator(self):
-        #return self.generators[current]
         
     def save_metrics(self):#, d_loss, g_loss, d_acc):
+
         # NEED TO REFACTORING:
         self.__update_metric(self.d_loss_real, self.d_losses_real)
         self.__update_metric(self.d_loss_fake, self.d_losses_fake)
@@ -265,6 +233,7 @@ class ModelHandler():
         ######################
 
     def load_from_file(self, filename):
+
         logs = []
         with open('{self.directory}/{filename}'.format(self=self, filename=filename), 'rb') as file:
             logs = pickle.load(file)
@@ -272,29 +241,16 @@ class ModelHandler():
         return logs
 
     def __update_metric(self, metric, logs):
+
         logs.append([metric, self.iteration, self.model_iteration, int(self.is_fadein)])
 
     def __to_file(self, logs, filename):
+
         with open('{self.directory}/{filename}'.format(self=self, filename=filename), 'wb') as file:
             pickle.dump(logs, file)
     
     def save_models_weights(self):
-        #tf.gfile.MkDir('{self.directory}/models-{self.model_iteration}'.format(self=self))
-        #models_dir = '{self.directory}/models-{self.model_iteration}/'.format(self=self)
-        '''
-        tf.gfile.MkDir('{self.directory}/models-weights/'.format(self=self))
-        models_dir = '{self.directory}/models-weights/'.format(self=self)
-        for i in range(0, self.n_blocks):
-            shape = self.upscale(self.start_shape, k = i)
-            for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-                tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
-                shape = self.upscale(self.start_shape, k = i)
-                resolution_model = self.models[model][shape]
-                for n in range(0, len(resolution_model)):
-                    resolution_model[n].save_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
-                                                                                                       name = model.__name__,
-                                                                                                       n=self.fadein_label(n), 
-                                                                                                       res=shape[0]))'''
+
         models_dir = '{self.directory}/models-weights/'.format(self=self)
         os.makedirs(models_dir, exist_ok=True)
         
@@ -305,8 +261,9 @@ class ModelHandler():
                                                                                                   name = model.__name__,
                                                                                                   is_fadein = self.fadein_label(self.is_fadein),
                                                                                                   res = self.current_shape[0]))
-
+    # Не используется
     def save_models(self):  # NEED TO TEST
+
         tf.gfile.MkDir('{self.directory}/models/'.format(self=self))
         models_dir = '{self.directory}/models/'.format(self=self)
         for i in range(0, self.n_blocks):
@@ -323,7 +280,6 @@ class ModelHandler():
     # batch_size for static batch_size (PlaidML костыль)
     def generate_imgs(self, resolution, iteration, generator, axis, n_imgs=4, step=4, fadein=False, batch_size=32):
         
-
         step = resolution//step
 
         if axis == 3:
@@ -366,6 +322,7 @@ class ModelHandler():
     
     # не используется (for debug)
     def sample_next(self, resolution, iteration, description=''):
+
         for i in range(1, self.n_blocks-1):
             resolution = 16 *2**i
             tf.gfile.MkDir('{self.samples_dir}/next/x{resolution}-norm'.format(self=self, resolution=resolution))
@@ -450,7 +407,7 @@ class ModelHandler():
         int_straight = int(is_straight) # реверс
 
         models = []
-        for model in [base_models.Discriminator, base_models.Generator,base_models.GAN]:
+        for model in [base_models.Discriminator, base_models.Generator,base_models.WGAN]:
             models.append(self.models[model][self.current_shape][self.is_fadein])
         d_model = models[0]
         g_model = models[1]
