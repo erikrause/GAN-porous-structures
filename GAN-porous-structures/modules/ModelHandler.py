@@ -62,7 +62,6 @@ class ModelHandler():
         #self.sample_interval = 100
         self.data_loader = data_loader
         self.z_global = np.random.normal(0, 1, (self.get_batch_size_for_sample(), self.z_dim))
-        self.__to_file(z_global, "/z_global.log")
         
         #
 
@@ -106,6 +105,8 @@ class ModelHandler():
             os.makedirs('{self.samples_dir}/next/'.format(self=self), exist_ok=True)
             os.makedirs('{self.directory}/models_diagrams/'.format(self=self), exist_ok=True)
             print('Starting new logs.')
+
+            self.__to_file(self.z_global, "/z_global.log")
 
         
         print('Last checkpoint:')
@@ -196,6 +197,21 @@ class ModelHandler():
             
             last_shape = new_shape
             
+    def plot_models(self, shape):
+        d_model.summary()
+        plot_model(d_model, 
+                   to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self), 
+                   show_shapes=True)
+        g_model.summary()
+        plot_model(g_model, 
+                   to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self), 
+                   show_shapes=True)
+        plot_model(wgan.critic_model,
+                   to_file='{self.directory}/models_diagrams/critic_model-{self.model_iteration}.png'.format(self=self), 
+                   show_shapes=True)
+        plot_model(wgan.generator_model, 
+                   to_file='{self.directory}/models_diagrams/generator_model-{self.model_iteration}.png'.format(self=self), 
+                   show_shapes=True)
 
     def upscale(self, shape:tuple, k = 1):
 

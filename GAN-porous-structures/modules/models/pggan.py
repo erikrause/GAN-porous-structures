@@ -138,10 +138,10 @@ def __add_wgan_block(discriminators, generators):
     
     return [straight_model, fadein_model]
 
-def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_layers=3):
+def __add_discriminator_block(old_model, n_filters, filter_size, n_input_layers=3):
 
     input_shape = list(old_model.get_input_shape_at(0))
-    for i in range(1,4):
+    for i in range(1,4):    # only 3D!!!
         input_shape[i] = input_shape[i]*2
 
     new_img_shape = input_shape[1:]
@@ -232,10 +232,10 @@ def __add_discriminator_block(old_model, n_filters=64, filter_size=3, n_input_la
 
     #fadein_model.cur_lod = cur_lod
 
-    print("fadein:")
-    print(fadein_model.summary())
-    print("straight:")
-    print(straight_model.summary())
+    #print("fadein:")
+    #print(fadein_model.summary())
+    #print("straight:")
+    #print(straight_model.summary())
 
     return [straight_model, fadein_model]
 

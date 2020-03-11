@@ -88,7 +88,9 @@ model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters,
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 2500, 3500, 10000, 14000])
 #n_straight = np.array([3400, 6000, 30000, 80000, 200000])
-n_fadein = np.array([0, 5000, 5000, 50000, 14000])
-n_straight = np.array([0, 5900, 50000, 80000, 200000])
+#n_fadein = np.array([0, 5000, 5000, 50000, 14000])
+#n_straight = np.array([0, 5900, 50000, 80000, 200000])
+n_fadein = np.array([0, 0,0,0,0,0])
+n_straight = np.array([0, 0,0,0,0,0,0])
 
 model_handler.train(n_straight, n_fadein, batch_size, sample_interval)
