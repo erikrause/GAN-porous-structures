@@ -25,7 +25,8 @@ global dis_lr
 global alpha
 global batch_size
 global conv_per_res     # number of conv layers per resolution
-global max_conv_filters
+global n_filters
+global filters_sizes
 
 lr = 0.0005
 dis_lr = lr #*2
@@ -36,7 +37,8 @@ weight_init = initializers.he_normal()  #RandomNormal(stddev=0.02)
 alpha = 0.2
 batch_size = 16
 conv_per_res = 1
-max_conv_filters = 128
+n_filters = []
+filters_sizes = []
 
 
 # mini-batch standard deviation layer
@@ -141,7 +143,7 @@ class Generator(Model):
 
         #combined = Concatenate()([input_Z, input_C])
 
-        units = 64
+        units = n_filters[0]
         channels = self.start_img_shape[-1]   #?
         hidden_shape = tuple(x//(2) for x in (self.start_img_shape[:-1]))
         for i in range(self.dims):
@@ -149,7 +151,7 @@ class Generator(Model):
         unints = units * channels   # channles не используется!
 
         hidden_shape = list(hidden_shape)
-        hidden_shape.append(64)
+        hidden_shape.append(n_filters[0])
         hidden_shape = tuple(hidden_shape)
 
         #hidden_shape = (16,1,1,1,512)
@@ -169,13 +171,13 @@ class Generator(Model):
 
         g = self.upsample()(g)
 
-        g = self.conv(64, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(n)(n_filters[0], kernel_size=filters_sizes[0], strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha)(g)
         #g = PixelNormLayer()(g)
         #g = self.upsample()(g)
 
-        g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(n_filters[1], kernel_size=filters_sizes[0], strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha)(g)
   
@@ -267,7 +269,7 @@ class WGAN():
         ################################
 
 class Discriminator(Model):
-    def __init__(self, img_shape=None, inputs = None, outputs = None, alpha = 0.2, droprate = 0.2):
+    def __init__(self, img_shape=None, inputs = None, outputs = None):
 
         self.dims = len(img_shape) - 1
         if self.dims == 3:
@@ -278,8 +280,6 @@ class Discriminator(Model):
             self.pool = AveragePooling2D
 
         if outputs == None:
-            self.alpha=0.2
-            self.droprate = droprate
             model = self.__build(img_shape)
             Model.__init__(self, model.inputs, model.outputs)
         elif outputs != None:
@@ -296,9 +296,9 @@ class Discriminator(Model):
         input_img = Input(batch_shape=(batch_size,8,8,8,1))#img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
-        d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
+        d = self.conv(n_filters[1], kernel_size=filters_sizes[0], strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
         #d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d) 
+        d = LeakyReLU(alpha)(d) 
 
         #d = MinibatchStdev()(d)
         d = MinibatchStatConcatLayer()(d)   # MSC-BUAA
@@ -309,9 +309,9 @@ class Discriminator(Model):
         #d = LeakyReLU(alpha = self.alpha)(d)
         #d = self.pool()(d)
 
-        d = self.conv(64, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
+        d = self.conv(n_filters[0], kernel_size=filters_sizes[0], strides = 1, padding='same', kernel_initializer = weight_init)(d)
         #d = BatchNormalization()(d)
-        d = LeakyReLU(alpha = self.alpha)(d)
+        d = LeakyReLU(alpha)(d)
         d = self.pool()(d)
 
         #d = self.conv(128, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)

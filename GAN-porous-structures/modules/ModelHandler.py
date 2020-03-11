@@ -62,6 +62,7 @@ class ModelHandler():
         #self.sample_interval = 100
         self.data_loader = data_loader
         self.z_global = np.random.normal(0, 1, (self.get_batch_size_for_sample(), self.z_dim))
+        self.__to_file(z_global, "/z_global.log")
         
         #
 
@@ -81,6 +82,7 @@ class ModelHandler():
             self.model_iteration = self.d_losses_real[-1][-2]
             self.is_fadein = bool(self.d_losses_real[-1][-1])
             self.parameters = self.load_from_file('/parameters')
+            self.z_global = self.load_from_file("/z_global.log")
 
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
             self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)

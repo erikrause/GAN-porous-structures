@@ -31,17 +31,18 @@ n_blocks = 5        # Количество повышений разрешени
 is_nearest = False   # Алгоритм понижения разрешения датасета. False = Avgpoolng: True = MaxPooling.
 
 # Filters for each resolution block (from hidden layers to end resolution layers):
-n_filters = {1: 32,
-             2: 16,
-             3: 8,
-             4: 4,
-             5: 2}    
+# !!! len(n_filters) == len(filter_sizes) !!!
+n_filters = [ 64,   # 8x8x8     - example of resolution
+              32,   # 16x16x16
+              16,   # 32x32x32
+              8,    # 64x64x64
+              4 ]   # 128x128x128
 
-filter_sizes = {1: 3,
-                2: 3,
-                3: 3,
-                4: 3,
-                5: 3}      
+filters_sizes = [ 3,     # 8x8x8     # TODO: попробовать большой фильтр
+                 3,     # 16x16x16
+                 3,     # 32x32x32
+                 3,     # 64x64x64
+                 3]     # 128x128x128
 
 # 'directory_name/' (слэш только в конце названия папки!).
 DIRECTORY = ''
@@ -56,26 +57,34 @@ data_loader = DataLoader(DATASET_DIR, (496,466,496), n_blocks, is_tif=is_tif, di
 # Build a models (если логи лежат в папке History, то веса моделей будут загружены с папки History/models_wetights):
 WEIGHTS_DIR = 'models-custom/'  # не используется
 
+# Setting model layers parameters/
+n_filters = np.asarray(n_filters)
+n_filters = n_filters * 2 
+base_models.n_filters = n_filters
+base_models.filters_sizes = filters_sizes
+base_models.conv_per_res = 1
+# /
+
+
 # Setting hyperparameters/
 batch_size = 32
 base_models.batch_size = 32     # set to None if you need dinamic batch_size
-
 base_models.lr = 0.0005
 base_models.dis_lr = base_models.lr
 base_models.opt = Adam(lr=base_models.lr)
 base_models.dis_opt = Adam(lr=base_models.dis_lr)
-
 # TODO: add dropout or noise for dis
 base_models.alpha = 0.2     # ReLU alpha value
 base_models.weight_init = initializers.he_normal() 
 sample_interval = 1    # должно быть кратно итерациям
 # /
 
+
 ######################################
 # MAIN LOOP
 ######################################
 
-model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters, filter_sizes, data_loader)#, WEIGHTS_DIR)
+model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters, filters_sizes, data_loader)#, WEIGHTS_DIR)
 # Итерации на каждый слой:
 #n_fadein = np.array([0, 2500, 3500, 10000, 14000])
 #n_straight = np.array([3400, 6000, 30000, 80000, 200000])
