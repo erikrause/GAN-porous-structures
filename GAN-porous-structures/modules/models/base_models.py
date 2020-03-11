@@ -171,7 +171,7 @@ class Generator(Model):
 
         g = self.upsample()(g)
 
-        g = self.conv(n)(n_filters[0], kernel_size=filters_sizes[0], strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(n_filters[0], kernel_size=filters_sizes[0], strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha)(g)
         #g = PixelNormLayer()(g)
@@ -293,7 +293,10 @@ class Discriminator(Model):
 
     def __build(self, img_shape:tuple):
 
-        input_img = Input(batch_shape=(batch_size,8,8,8,1))#img_shape)
+        batch_shape = [batch_size]
+        for i in range (0,len(img_shape)):
+            batch_shape.append(img_shape[i])
+        input_img = Input(batch_shape=batch_shape)#(batch_size,8,8,8,1))#img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
         d = self.conv(n_filters[1], kernel_size=filters_sizes[0], strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
