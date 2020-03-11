@@ -534,9 +534,10 @@ class ModelHandler():
             
             start_time = time.time()
             if self.is_fadein:
-                #alpha = pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
-                alpha = pggan.update_lod(g_model, d_model, self.iteration, iterations)
+                alpha = pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
+                #alpha = pggan.update_lod(g_model, d_model, self.iteration, iterations)
 
+                # debug
                 z = np.random.normal(0, 1, (batch_size, self.z_dim))
                 gen_imgs = g_model.predict(z)
                 prob = d_model.predict(gen_imgs)
@@ -635,7 +636,7 @@ class ModelHandler():
 
                 # Get alpha for debug:
                 #self.__get_alpha(d_model)
-                self.__get_lod(d_model)
+                self.__get_alpha(d_model)
 
                 #print('update lr time: ', lr_time)
 
