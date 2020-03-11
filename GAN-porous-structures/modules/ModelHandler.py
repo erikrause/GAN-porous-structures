@@ -61,7 +61,8 @@ class ModelHandler():
         #self.batch_size = 64
         #self.sample_interval = 100
         self.data_loader = data_loader
-        self.z_global = np.random.normal(0, 1, (1, self.z_dim))
+        self.z_global = np.random.normal(0, 1, (self.get_batch_size_for_sample(), self.z_dim))
+        
         #
 
         if weights_dir != '':
@@ -264,10 +265,19 @@ class ModelHandler():
                                                                                                        n=self.fadein_label(n), 
                                                                                                        res=shape[0]))
       
+    def get_batch_size_for_sample(self):
+
+        if base_models.batch_size == None:
+            return 1
+        else:
+            return base_models.batch_size
+
     # batch_size for static batch_size (PlaidML костыль)
-    def generate_imgs(self, resolution, iteration, generator, axis, n_imgs=4, step=4, fadein=False, batch_size=32):
+    def generate_imgs(self, resolution, iteration, generator, axis, n_imgs=4, step=4, fadein=False):
         
         step = resolution//step
+
+        batch_size = self.get_batch_size_for_sample()
 
         if axis == 3:
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
@@ -324,13 +334,6 @@ class ModelHandler():
     # не используется (for debug)
     def gen_two(self, generator:Model, filename:str):
         #imgs_mean = np.array([[0.15]])
-
-        # If model uses static batch_size:
-        if generator.input_shape[0] != None:
-            batch_size = generator.input_shape[0]
-            if len(self.z_global) != batch_size:
-                self.z_global = np.random.normal(0, 1, (batch_size, self.z_dim))
-            #batch = generator.input_shape[0] - 1
 
         gen_imgs = generator.predict(self.z_global)
         gen_imgs = (gen_imgs+1)*127.5
@@ -451,7 +454,7 @@ class ModelHandler():
         print(self.current_shape)
         resolution = self.current_shape[0]
         axis = len(self.current_shape) - 1
-        self.generate_imgs(resolution, self.iteration, g_model, axis, n_imgs = 1, fadein=self.is_fadein, batch_size=batch_size)
+        self.generate_imgs(resolution, self.iteration, g_model, axis, n_imgs = 1, fadein=self.is_fadein)
         #self.sample_next(self.current_shape[0], self.iteration, 'start')  
 
         # TODO: Delete interrupt
@@ -581,7 +584,7 @@ class ModelHandler():
                 self.save_metrics()
                 self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
-                self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein, batch_size=batch_size)
+                self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein)
                 self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress

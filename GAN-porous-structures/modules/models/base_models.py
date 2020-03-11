@@ -24,6 +24,8 @@ global lr
 global dis_lr
 global alpha
 global batch_size
+global conv_per_res     # number of conv layers per resolution
+global max_conv_filters
 
 lr = 0.0005
 dis_lr = lr #*2
@@ -33,6 +35,8 @@ dis_opt = Adam(lr=dis_lr)
 weight_init = initializers.he_normal()  #RandomNormal(stddev=0.02)
 alpha = 0.2
 batch_size = 16
+conv_per_res = 1
+max_conv_filters = 128
 
 
 # mini-batch standard deviation layer

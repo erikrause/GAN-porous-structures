@@ -51,14 +51,14 @@ is_tif = True      # Change to false for downloading .png files
 
 # Initialize dataset:
 img_dims = len(start_shape) - 1
-data_loader = DataLoader(DATASET_DIR, (500, 500, 500), n_blocks, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
+data_loader = DataLoader(DATASET_DIR, (496,466,496), n_blocks, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
 
 # Build a models (если логи лежат в папке History, то веса моделей будут загружены с папки History/models_wetights):
 WEIGHTS_DIR = 'models-custom/'  # не используется
 
 # Setting hyperparameters/
-batch_size = 16
-base_models.batch_size = 32     # set to None if you want dinamic batch_size
+batch_size = 32
+base_models.batch_size = 32     # set to None if you need dinamic batch_size
 
 base_models.lr = 0.0005
 base_models.dis_lr = base_models.lr
