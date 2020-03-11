@@ -4,7 +4,6 @@ from keras.models import Model
 #from modules.models import base_models3D as base_models
 from modules.preprocess import DataLoader
 import pickle
-import tensorflow as tf
 import numpy as np
 from keras import backend
 import time
@@ -15,22 +14,6 @@ from typing import Dict, Tuple  # попробовать позже (стати�
 import os.path
 import _thread as thread
 import os
-
-class PolynomialDecay():
-	def __init__(self, maxEpochs=100, initAlpha=0.01, power=1.0):
-		# store the maximum number of epochs, base learning rate,
-		# and power of the polynomial
-		self.maxEpochs = maxEpochs
-		self.initAlpha = initAlpha
-		self.power = power
-
-	def __call__(self, epoch):
-		# compute the new learning rate based on polynomial decay
-		decay = (1 - (epoch / float(self.maxEpochs))) ** self.power
-		alpha = self.initAlpha * decay
-
-		# return the new learning rate
-		return float(alpha)
 
 class ModelHandler():
     def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader, weights_dir=''):     #, discriminators, generators, gans):
@@ -114,11 +97,11 @@ class ModelHandler():
             self.load_models_weights()
             print('All weights loaded.')
         else:
-            tf.gfile.MkDir(directory)
-            tf.gfile.MkDir(self.directory)
-            tf.gfile.MkDir(self.samples_dir)
-            tf.gfile.MkDir('{self.samples_dir}/next/'.format(self=self))
-            tf.gfile.MkDir('{self.directory}/models_diagrams/'.format(self=self))
+            os.makedirs(directory, exist_ok=True)
+            os.makedirs(self.directory, exist_ok=True)
+            os.makedirs(self.samples_dir, exist_ok=True)
+            os.makedirs('{self.samples_dir}/next/'.format(self=self), exist_ok=True)
+            os.makedirs('{self.directory}/models_diagrams/'.format(self=self), exist_ok=True)
             print('Starting new logs.')
 
         
@@ -268,12 +251,12 @@ class ModelHandler():
     # Не используется
     def save_models(self):  # NEED TO TEST
 
-        tf.gfile.MkDir('{self.directory}/models/'.format(self=self))
+        os.makedirs('{self.directory}/models/'.format(self=self), exist_ok=True)
         models_dir = '{self.directory}/models/'.format(self=self)
         for i in range(0, self.n_blocks):
             shape = self.upscale(self.start_shape, k = i)
             for model in [base_models.Discriminator, base_models.Generator, base_models.GAN]:
-                tf.gfile.MkDir('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__))
+                os.makedirs('{models_dir}/{name}s'.format(models_dir=models_dir, name = model.__name__), exist_ok=True)
                 resolution_model = self.models[model][shape]
                 for n in range(0, len(resolution_model)):
                     resolution_model[n].save_weights('{models_dir}/{name}s/{n}_{name}-x{res}.h5'.format(models_dir=models_dir,
@@ -328,8 +311,8 @@ class ModelHandler():
     def sample_next(self, resolution, iteration, extension='.png'):
         for i in range(1, self.n_blocks-1):
             resolution = self.start_shape[1] *2**i
-            tf.gfile.MkDir('{self.samples_dir}/next/x{resolution}-norm'.format(self=self, resolution=resolution))
-            tf.gfile.MkDir('{self.samples_dir}/next/x{resolution}-fade'.format(self=self, resolution=resolution))
+            os.makedirs('{self.samples_dir}/next/x{resolution}-norm'.format(self=self, resolution=resolution), exist_ok=True)
+            os.makedirs('{self.samples_dir}/next/x{resolution}-fade'.format(self=self, resolution=resolution), exist_ok=True)
             shape = self.upscale(self.start_shape, k = i)
             for model in [base_models.Generator]:
                 resolution_model = self.models[model][shape]
@@ -390,9 +373,17 @@ class ModelHandler():
             self.train_block(iterations, batch_size, sample_interval, n_resolution)
 
             #########
-            # КОСТЫЛЬ! TODO: убрать баг 
-            print("Закройте окно и запустите программу снова для тренировки следующего слоя!")
-            input()         
+            # КОСТЫЛЬ для PLAIDML! TODO: причина бага?
+            current_backend = backend.backend()
+            if current_backend == 'tensorflow':
+                print(current_backend)
+            elif current_backend == 'plaidml':
+                print(current_backend)              # With plaidml need to reload program
+                print("Backend == PlaidML. Закройте окно и запустите программу снова для тренировки следующего слоя!")
+                input()
+            else:
+                print(' WARNING: BACKEND ' + current_backend + ' NOT SUPPORTED')
+                
             ##########
             
             ##############################
@@ -504,7 +495,7 @@ class ModelHandler():
             
             start_time = time.time()
             if self.is_fadein:
-                alpha = pggan.update_fadein([g_model, d_model, gan_model], self.iteration, iterations)
+                alpha = pggan.update_fadein([g_model, d_model], self.iteration, iterations)
                 #alpha = pggan.update_lod(g_model, d_model, self.iteration, iterations)
 
                 # debug
@@ -541,17 +532,6 @@ class ModelHandler():
                                                                [real, fake, dummy])
             # / Critic train loop
             #######################
-
-            ##############################
-            # Clipping weights (WGAN) with plaidml backend (with tf cliping will be on kernel_konstraint in models builder).
-            # NOTE: this code will affect on update_fadein(get/set_value) slowdown when using tf backend.
-            #if base_models.constraint == None:
-            #    clip_val = base_models.clip_value
-            #    for layer in d_model.layers:
-            #        if  hasattr(layer, 'kernel'):
-            #             tensor = layer.kernel
-            #             backend.clip(tensor, -clip_val, clip_val)
-            ###############################
 
             #self.d_loss, self.d_acc = 0.5 * np.add(self.d_loss_real, self.d_loss_fake)
             #self.d_loss_real = np.mean(self.d_loss_real)
@@ -618,11 +598,6 @@ class ModelHandler():
 
                 #print('update lr time: ', lr_time)
 
-            #if (self.iteration) % batch_interval == 0 & batch_interval > 0:
-                #prob = time.time()
-                #self.data_loader.update_batch(data_size, self.end_shape[:-1], downscale)
-                #print('update batch time: ', time.time() - prob)
-
         print('/End of training-{}-{}-model'.format(self.model_iteration, int_fadein))
 
 
@@ -673,5 +648,3 @@ class ModelHandler():
     def __get_lod(self, model):
         if hasattr(model, 'cur_lod'): 
             print("Fadein alpha: ", backend.get_value(model.cur_lod))
-
-    #def get_models(self, resolution)
