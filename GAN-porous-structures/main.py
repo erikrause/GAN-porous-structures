@@ -20,13 +20,16 @@ if 'plaidml' in sys.modules:
 #-----------------------------
 # Jupyter notebook starts here:
 #-----------------------------
-import sys
-sys.path.append(DIRECTORY)
+
 # 'directory_name/' (слэш только в конце названия папки!).
 DIRECTORY = ''
 #DATASET_DIR = 'datasets/berea/{}.png'  -   for png files iteration
 DATASET_DIR = 'datasets/berea/berea.tif'
 is_tif = True      # Change to false for downloading .png files
+
+# Uncomment this for notebook
+#import sys
+#sys.path.append(DIRECTORY)
 
 from modules.preprocess import DataLoader
 from modules.ModelHandler import ModelHandler
