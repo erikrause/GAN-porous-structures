@@ -11,7 +11,7 @@ class RandomWeightedAverage(_Merge):
     think of. Improvements appreciated."""
 
     def _merge_function(self, inputs):
-        weights = K.random_uniform((K.shape(inputs)[0], 1, 1, 1, 1))
+        weights = K.random_uniform((K.shape(inputs[0])[0], 1, 1, 1, 1))
         return (weights * inputs[0]) + ((1 - weights) * inputs[1])
 
 def gradient_penalty_loss(y_true, y_pred, averaged_samples,
