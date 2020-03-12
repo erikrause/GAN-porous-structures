@@ -325,7 +325,7 @@ class ModelHandler():
                                                                                                iteration=iteration,
                                                                                                i=i,
                                                                                                imgs_mean=imgs_mean[0][0],   # ONLY FOR 3D!
-                                                                                               rm=rm[i][0])
+                                                                                               rm=rm[0][0])
 
             
 
