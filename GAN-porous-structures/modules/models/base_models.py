@@ -15,8 +15,6 @@ from keras.initializers import RandomNormal
 from keras import initializers
 from functools import partial
 
-from keras.layers.merge import _Merge
-
 global opt
 global dis_opt
 global weight_init
@@ -62,7 +60,7 @@ class Generator(Model):
 
     def __build(self, z_dim):
         
-        if batch_shape == None:
+        if batch_size == None:
             input_Z = Input(shape=(z_dim,))
         else:
             input_Z = Input(batch_shape=(batch_size, z_dim))

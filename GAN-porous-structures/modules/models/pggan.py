@@ -6,7 +6,7 @@ from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, Up
 from keras.models import Model
 from keras.optimizers import Adam
 from keras import backend
-from modules.models.layers import *
+from modules.models.pggan_layers import *
 #import tensorflow as tf
 
 #import tensorflow.python.keras.backend as K
