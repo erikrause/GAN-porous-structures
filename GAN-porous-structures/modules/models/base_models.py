@@ -8,9 +8,9 @@ from keras.models import Model
 from keras.optimizers import Adam, RMSprop
 from keras import backend
 #import tensorflow as tf
-from modules.models.layers import *
+from modules.models.pggan_layers import *
+from modules.models.wgangp_layers import *
 from keras.initializers import RandomNormal
-from keras.constraints import Constraint
 #from keras.constraints import MinMaxNorm
 from keras import initializers
 from functools import partial
@@ -28,6 +28,7 @@ global conv_per_res     # number of conv layers per resolution
 global n_filters
 global filters_sizes
 
+# Standart hyperparameters (can be changed)
 lr = 0.0005
 dis_lr = lr #*2
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
@@ -39,83 +40,6 @@ batch_size = 16
 conv_per_res = 1
 n_filters = []
 filters_sizes = []
-
-
-# mini-batch standard deviation layer
-class MinibatchStdev(Layer):
-    # initialize the layer
-    def __init__(self, **kwargs):
-        super(MinibatchStdev, self).__init__(**kwargs)
-
-    # perform the operation
-    def call(self, inputs):
-        # calculate the mean value for each pixel across channels
-        mean = backend.mean(inputs, axis=0, keepdims=True)
-        # calculate the squared differences between pixel values and mean
-        squ_diffs = backend.square(inputs - mean)
-        # calculate the average of the squared differences (variance)
-        mean_sq_diff = backend.mean(squ_diffs, axis=0, keepdims=True)
-        # add a small value to avoid a blow-up when we calculate stdev
-        mean_sq_diff += 1e-8
-        # square root of the variance (stdev)
-        stdev = backend.sqrt(mean_sq_diff)
-        # calculate the mean standard deviation across each pixel coord
-        mean_pix = backend.mean(stdev, keepdims=True)
-        # scale this up to be the size of one input feature map for each sample
-        shape = backend.shape(inputs)
-        output = backend.tile(mean_pix, (shape[0], shape[1], shape[2], shape[3], 1))
-        # concatenate with the output
-        combined = backend.concatenate([inputs, output], axis=-1)
-        return combined   # was combined
-
-	# define the output shape of the layer
-    def compute_output_shape(self, input_shape):
-        # create a copy of the input shape as a list
-        input_shape = list(input_shape)
-        # add one to the channel dimension (assume channels-last)
-        input_shape[-1] += 1
-        # convert list to a tuple
-        return tuple(input_shape)
-
-def minibatch_std_layer(layer, group_size=4):
-    '''
-    Will calculate minibatch standard deviation for a layer.
-    Will do so under a pre-specified tf-scope with Keras.
-    Assumes layer is a float32 data type. Else needs validation/casting.
-    NOTE: there is a more efficient way to do this in Keras, but just for
-    clarity and alignment with major implementations (for understanding) 
-    this was done more explicitly. Try this as an exercise.
-    '''
-    # Hint!
-    # If you are using pure Tensorflow rather than Keras, always remember scope
-    # minibatch group must be divisible by (or <=) group_size
-    group_size = K.minimum(group_size, K.shape(layer)[0])
-
-    # just getting some shape information so that we can use
-    # them as shorthand as well as to ensure defaults
-    input = layer
-    shape = list(K.int_shape(input))
-    shape[0] = K.shape(input)[0]
-
-    # Reshaping so that we operate on the level of the minibatch
-    # in this code we assume the layer to be:
-    # [Group (G), Minibatch (M), Width (W), Height (H) , Channel (C)]
-    # but be careful different implementations use the Theano specific
-    # order instead
-    minibatch = K.reshape(layer, (group_size, -1, shape[1], shape[2], shape[3], shape[4]))
-
-    # Center the mean over the group [M, W, H, C]
-    minibatch -= K.mean(minibatch, axis=0, keepdims=True)
-    # Calculate the variance of the group [M, W, H, C]
-    minibatch = K.mean(K.square(minibatch), axis = 0)
-    # Calculate the standard deviation over the group [M,W,H,C]
-    minibatch = K.square(minibatch + 1e8)
-    # Take average over feature maps and pixels [M,1,1,1]
-    minibatch = K.mean(minibatch, axis=[1,2,3], keepdims=True)
-    # Add as a layer for each group and pixels
-    minibatch = K.tile(minibatch, [group_size, shape[1], shape[2], shape[3], shape[4]])
-    # Append as a new feature map
-    return K.concatenate([layer, minibatch], axis=1)
 
 class Generator(Model):
     def __init__(self, inputs, start_img_shape, outputs = None):
@@ -137,8 +61,11 @@ class Generator(Model):
             Model.__init__(self, inputs, outputs)
 
     def __build(self, z_dim):
-  
-        input_Z = Input(batch_shape=(batch_size,z_dim))
+        
+        if batch_shape == None:
+            input_Z = Input(shape=(z_dim,))
+        else:
+            input_Z = Input(batch_shape=(batch_size, z_dim))
         #input_C = Input(shape=(1,))
 
         #combined = Concatenate()([input_Z, input_C])
@@ -154,20 +81,12 @@ class Generator(Model):
         hidden_shape.append(n_filters[0])
         hidden_shape = tuple(hidden_shape)
 
-        #hidden_shape = (16,1,1,1,512)
-        #units = 512
-
         #g = PixelNormLayer()(input_Z)
         g = Dense(units)(input_Z)
         g = LeakyReLU(alpha)(g)
         #g = PixelNormLayer()(g)
         g = Reshape(hidden_shape)(g)
         #g = self.upsample()(g)
-
-        #g = self.conv(128, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        #g = BatchNormalization()(g)
-        #g = LeakyReLU(alpha)(g)
-        #g = PixelNormLayer()(g)
 
         g = self.upsample()(g)
 
@@ -180,12 +99,6 @@ class Generator(Model):
         g = self.conv(n_filters[1], kernel_size=filters_sizes[0], strides=1, padding='same', kernel_initializer = weight_init)(g)
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha)(g)
-  
-        #g = self.conv(32, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
-        #g = BatchNormalization()(g)
-        #g = LeakyReLU(alpha)(g)
-        #g = PixelNormLayer()(g)
-        #g = self.upsample()(g)
     
         g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         img = Activation('tanh')(g)
@@ -218,8 +131,6 @@ class GAN(Model):
 
 class WGAN():
     def __init__(self, generator:Model, critic:Model):
-        #discriminator.trainable = False
-        #model = self.__build(generator, discriminator)
 
         self.generator = generator
         self.critic = critic
@@ -285,41 +196,38 @@ class Discriminator(Model):
         elif outputs != None:
             Model.__init__(self, inputs, outputs)
         
-        #Original GAN (needs batchnorm layers):
+        # Vanilla GAN:
         #self.compile(loss='binary_crossentropy',
         #             metrics=['accuracy'],
         #             optimizer=dis_opt)
+        # (+needs batchnorm layers)
 
 
     def __build(self, img_shape:tuple):
 
-        batch_shape = [batch_size]
-        for i in range (0,len(img_shape)):
-            batch_shape.append(img_shape[i])
-        input_img = Input(batch_shape=batch_shape)#(batch_size,8,8,8,1))#img_shape)
+        if batch_size != None:
+            batch_shape = [batch_size]
+            for i in range (0,len(img_shape)):
+                batch_shape.append(img_shape[i])
+
+            input_img = Input(batch_shape=batch_shape)#(batch_size,8,8,8,1))#img_shape)
+        else:
+            input_img = Input(shape=img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
     
         d = self.conv(n_filters[1], kernel_size=filters_sizes[0], strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
         #d = BatchNormalization()(d)
         d = LeakyReLU(alpha)(d) 
 
-        #d = MinibatchStdev()(d)
+        # 3 implementations of MinibatchStdDev layer:
+        #d = MinibatchStdev()(d)    # machinelearningmastery
         d = MinibatchStatConcatLayer()(d)   # MSC-BUAA
         #d = minibatch_std_layer(d)     # Manning
-
-        #d = self.conv(32, kernel_size=3, strides = 1, padding='same', name='concat', kernel_initializer = weight_init)(d)
-        #d = BatchNormalization()(d)
-        #d = LeakyReLU(alpha = self.alpha)(d)
-        #d = self.pool()(d)
 
         d = self.conv(n_filters[0], kernel_size=filters_sizes[0], strides = 1, padding='same', kernel_initializer = weight_init)(d)
         #d = BatchNormalization()(d)
         d = LeakyReLU(alpha)(d)
         d = self.pool()(d)
-
-        #d = self.conv(128, kernel_size=3, strides = 1, padding='same', kernel_initializer = weight_init)(d)
-        #d = BatchNormalization()(d)
-        #d = LeakyReLU(alpha = self.alpha)(d)
         
         #d = self.pool()(d)
     
@@ -338,63 +246,3 @@ class Discriminator(Model):
     
         return model
 
-class RandomWeightedAverage(_Merge):
-    """Takes a randomly-weighted average of two tensors. In geometric terms, this
-    outputs a random point on the line between each pair of input points.
-    Inheriting from _Merge is a little messy but it was the quickest solution I could
-    think of. Improvements appreciated."""
-
-    def _merge_function(self, inputs):
-        weights = K.random_uniform((batch_size, 1, 1, 1, 1))
-        return (weights * inputs[0]) + ((1 - weights) * inputs[1])
-
-def gradient_penalty_loss(y_true, y_pred, averaged_samples,
-                          gradient_penalty_weight):
-    """Calculates the gradient penalty loss for a batch of "averaged" samples.
-    In Improved WGANs, the 1-Lipschitz constraint is enforced by adding a term to the
-    loss function that penalizes the network if the gradient norm moves away from 1.
-    However, it is impossible to evaluate this function at all points in the input
-    space. The compromise used in the paper is to choose random points on the lines
-    between real and generated samples, and check the gradients at these points. Note
-    that it is the gradient w.r.t. the input averaged samples, not the weights of the
-    discriminator, that we're penalizing!
-    In order to evaluate the gradients, we must first run samples through the generator
-    and evaluate the loss. Then we get the gradients of the discriminator w.r.t. the
-    input averaged samples. The l2 norm and penalty can then be calculated for this
-    gradient.
-    Note that this loss function requires the original averaged samples as input, but
-    Keras only supports passing y_true and y_pred to loss functions. To get around this,
-    we make a partial() of the function with the averaged_samples argument, and use that
-    for model training."""
-    # first get the gradients:
-    #   assuming: - that y_pred has dimensions (batch_size, 1)
-    #             - averaged_samples has dimensions (batch_size, nbr_features)
-    # gradients afterwards has dimension (batch_size, nbr_features), basically
-    # a list of nbr_features-dimensional gradient vectors
-    gradients = K.gradients(y_pred, averaged_samples)[0]
-    # compute the euclidean norm by squaring ...
-    gradients_sqr = K.square(gradients)
-    #   ... summing over the rows ...
-    gradients_sqr_sum = K.sum(gradients_sqr,
-                              axis=np.arange(1, len(gradients_sqr.shape)))
-    #   ... and sqrt
-    gradient_l2_norm = K.sqrt(gradients_sqr_sum)
-    # compute lambda * (1 - ||grad||)^2 still for each single sample
-    gradient_penalty = gradient_penalty_weight * K.square(1 - gradient_l2_norm)
-    # return the mean as loss over all the batch samples
-    return K.mean(gradient_penalty)
-
-def wasserstein_loss(y_true, y_pred):
-    """Calculates the Wasserstein loss for a sample batch.
-    The Wasserstein loss function is very simple to calculate. In a standard GAN, the
-    discriminator has a sigmoid output, representing the probability that samples are
-    real or generated. In Wasserstein GANs, however, the output is linear with no
-    activation function! Instead of being constrained to [0, 1], the discriminator wants
-    to make the distance between its output for real and generated samples as
-    large as possible.
-    The most natural way to achieve this is to label generated samples -1 and real
-    samples 1, instead of the 0 and 1 used in normal GANs, so that multiplying the
-    outputs by the labels will give you the loss immediately.
-    Note that the nature of this loss means that it can be (and frequently will be)
-    less than 0."""
-    return K.mean(y_true * y_pred)

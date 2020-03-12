@@ -83,7 +83,7 @@ base_models.conv_per_res = 1
 
 # Setting hyperparameters/
 batch_size = 32
-base_models.batch_size = 32     # set to None if you need dinamic batch_size
+base_models.batch_size = None     # Set to None if you need dinamic batch_size. Else set to train batch_size.
 base_models.lr = 0.0005
 base_models.dis_lr = base_models.lr
 base_models.opt = Adam(lr=base_models.lr)

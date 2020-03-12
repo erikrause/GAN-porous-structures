@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.29215.179
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "GAN-porous-structures", "GAN-porous-structures\GAN-porous-structures.pyproj", "{65A5E4A4-41F8-4914-9B46-0B4C117FE5AE}"
 EndProject
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "GAN-porous-structures-3D", "GAN-porous-structures-3D\GAN-porous-structures-3D.pyproj", "{8D0FBA64-E2A4-438F-8648-8EB612AAD448}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,8 +13,6 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{65A5E4A4-41F8-4914-9B46-0B4C117FE5AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{65A5E4A4-41F8-4914-9B46-0B4C117FE5AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8D0FBA64-E2A4-438F-8648-8EB612AAD448}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8D0FBA64-E2A4-438F-8648-8EB612AAD448}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

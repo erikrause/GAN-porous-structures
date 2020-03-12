@@ -30,7 +30,10 @@
     <Compile Include="modules\ModelHandler.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="modules\models\layers.py">
+    <Compile Include="modules\models\pggan_layers.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="modules\models\wgangp_layers.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="modules\models\__init__.py">
