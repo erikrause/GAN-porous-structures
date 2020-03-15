@@ -1,11 +1,15 @@
-from keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
-                          Embedding, Flatten, Input, Multiply, Reshape, Dropout,
-                          Concatenate, Layer, Add)
-from keras.layers.advanced_activations import LeakyReLU, ReLU
-from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
-from keras.models import Model
-from keras.optimizers import Adam
-from keras import backend
+import tensorflow as tf
+from tensorflow.keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
+                          Embedding, Flatten, Input, Multiply, Reshape, Dropout, 
+                          LeakyReLU, ReLU,
+                          Concatenate, Layer, Add, LeakyReLU, ReLU, Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D)
+#from tensorflow.keras.layers.advanced_activations import LeakyReLU, ReLU
+#from tensorflow.keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import backend
+
+
 from modules.models.pggan_layers import *
 #import tensorflow as tf
 
@@ -198,7 +202,7 @@ def __add_discriminator_block(old_model, n_filters, filter_size, n_input_layers=
             d = current_layer(d)
 
         # debug
-        prob = current_layer.get_weights()
+        #prob = current_layer.get_weights()
         
     straight_model = base_models.Discriminator(img_shape=new_img_shape,
                                         inputs=input_img, 

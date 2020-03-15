@@ -3,9 +3,9 @@ from numpy import random
 from PIL import Image
 from skimage import io  # for tiff load
 
-from keras.layers import Input
-from keras.layers.convolutional import MaxPooling3D, AveragePooling3D, MaxPooling2D, AveragePooling2D
-from keras.models import Model
+from tensorflow.keras.layers import Input, MaxPooling3D, AveragePooling3D, MaxPooling2D, AveragePooling2D
+#from keras.layers.convolutional import MaxPooling3D, AveragePooling3D, MaxPooling2D, AveragePooling2D
+from tensorflow.keras.models import Model
 
 import math
 from PIL import Image

@@ -1,19 +1,23 @@
-from keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
+from tensorflow.keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
                           Embedding, Flatten, Input, Reshape, Dropout,
-                          Concatenate, Layer)
-from keras.layers.advanced_activations import LeakyReLU, ReLU
-from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
-from keras.layers.convolutional import Conv3D, Conv3DTranspose, MaxPooling3D, UpSampling3D, AveragePooling3D
-from keras.models import Model
-from keras.optimizers import Adam, RMSprop
-from keras import backend
+                          Concatenate, Layer, LeakyReLU, ReLU,
+                          Conv3D, Conv3DTranspose, MaxPooling3D, UpSampling3D, AveragePooling3D,
+                          Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D)
+#from keras.layers.advanced_activations import LeakyReLU, ReLU
+#from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
+#from keras.layers.convolutional import Conv3D, Conv3DTranspose, MaxPooling3D, UpSampling3D, AveragePooling3D
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam, RMSprop
+from tensorflow.keras import backend
 #import tensorflow as tf
 from modules.models.pggan_layers import *
 from modules.models.wgangp_layers import *
-from keras.initializers import RandomNormal
+from tensorflow.keras.initializers import RandomNormal, he_normal
 #from keras.constraints import MinMaxNorm
-from keras import initializers
+from tensorflow.keras import initializers
 from functools import partial
+
+import tensorflow as tf
 
 global opt
 global dis_opt
@@ -32,7 +36,7 @@ dis_lr = lr #*2
 #opt = RMSprop(lr=lr)    #from vanilla WGAN paper
 opt = Adam(lr=lr)        # from Progressive growing GAN paper
 dis_opt = Adam(lr=dis_lr)
-weight_init = initializers.he_normal()  #RandomNormal(stddev=0.02)
+weight_init = he_normal()  #RandomNormal(stddev=0.02)
 alpha = 0.2
 batch_size = 16
 conv_per_res = 1
@@ -212,7 +216,7 @@ class Discriminator(Model):
         else:
             input_img = Input(shape=img_shape)
         #input_C = Input(shape=(1,), name='Input_C')
-    
+        
         d = self.conv(n_filters[1], kernel_size=filters_sizes[0], strides = 1, padding='same', name='concat_layer', kernel_initializer = weight_init)(input_img)
         #d = BatchNormalization()(d)
         d = LeakyReLU(alpha)(d) 

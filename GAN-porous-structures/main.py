@@ -37,8 +37,8 @@ import numpy as np
 
 # For setting hyperparameters to model:
 from modules.models import base_models
-from keras.optimizers import Adam, RMSprop
-from keras import initializers
+from tensorflow.keras import initializers
+from tensorflow.keras.optimizers import Adam, RMSprop
 
 # Start input image resolution
 channels = 1        # 1 - черно-белое изображение

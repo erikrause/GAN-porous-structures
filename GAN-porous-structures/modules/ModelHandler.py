@@ -1,16 +1,16 @@
 from modules.models import base_models, pggan
-from keras.models import Model
+from tensorflow.keras.models import Model
 #from modules.models import pggan3D as pggan
 #from modules.models import base_models3D as base_models
 from modules.preprocess import DataLoader
 import pickle
 import numpy as np
-from keras import backend
+from tensorflow.keras import backend
 import time
 from PIL import Image
 import matplotlib.pyplot as plt
-from keras.utils import plot_model
-from typing import Dict, Tuple  # попробовать позже (статическая типизация)
+from tensorflow.keras.utils import plot_model
+#from typing import Dict, Tuple  # попробовать позже (статическая типизация)
 import os.path
 import _thread as thread
 import os
