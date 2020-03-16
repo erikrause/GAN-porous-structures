@@ -91,15 +91,15 @@ base_models.dis_opt = Adam(lr=base_models.dis_lr)
 # TODO: add dropout or noise for dis
 base_models.alpha = 0.2     # ReLU alpha value
 base_models.weight_init = initializers.he_normal() 
-sample_interval = 1    # должно быть кратно итерациям
+sample_interval = 100    # должно быть кратно итерациям
 # /
 
+model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters, filters_sizes, data_loader)#, WEIGHTS_DIR)
 
 ######################################
 # MAIN LOOP
 ######################################
 
-model_handler = ModelHandler(DIRECTORY, start_shape, z_dim, n_blocks, n_filters, filters_sizes, data_loader)#, WEIGHTS_DIR)
 # Итерации на каждый слой:
 n_fadein = np.array([0, 4000, 4000, 4000, 4000])
 n_straight = np.array([8000, 12000, 17000, 20000, 200000])
