@@ -1,17 +1,13 @@
-import tensorflow as tf
-from tensorflow.keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
-                          Embedding, Flatten, Input, Multiply, Reshape, Dropout, 
-                          LeakyReLU, ReLU,
-                          Concatenate, Layer, Add, LeakyReLU, ReLU, Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D)
-#from tensorflow.keras.layers.advanced_activations import LeakyReLU, ReLU
-#from tensorflow.keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras import backend
-
-
+from keras.layers import (Activation, BatchNormalization, Concatenate, Dense,
+                          Embedding, Flatten, Input, Multiply, Reshape, Dropout,
+                          Concatenate, Layer, Add)
+from keras.layers.advanced_activations import LeakyReLU, ReLU
+from keras.layers.convolutional import Conv2D, Conv2DTranspose, MaxPooling2D, UpSampling2D, AveragePooling2D
+from keras.models import Model
+from keras.optimizers import Adam
+from keras import backend
 from modules.models.pggan_layers import *
-#import tensorflow as tf
+import tensorflow as tf
 
 #import tensorflow.python.keras.backend as K
 
@@ -104,7 +100,7 @@ def __add_generator_block(old_model, n_filters, filter_size):
     #g = LeakyReLU(base_models.alpha)(g)
     
     # add new output layer
-    g = conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    g = conv(1, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
     out_image = Activation('tanh')(g)
     # define model
     straight_model = base_models.Generator(inputs=old_model.inputs,
@@ -142,18 +138,31 @@ def __add_wgan_block(discriminators, generators):
     
     return [straight_model, fadein_model]
 
-def __add_discriminator_block(old_model, n_filters, filter_size, n_input_layers=3):
+def __add_discriminator_block(old_model, n_filters, filter_size, n_input_layers=8):
 
-    input_shape = list(old_model.get_input_shape_at(0))
-    for i in range(1,4):    # only 3D!!!
+    input_shape = list(old_model.get_input_shape_at(0)[0])
+    for i in range(1, len(input_shape) - 1):
         input_shape[i] = input_shape[i]*2
 
     new_img_shape = input_shape[1:]
+    c_shape = old_model.get_input_shape_at(0)[1]
 
     input_img = Input(batch_shape=input_shape)    # was new_img_shape
+    input_c = Input(batch_shape=c_shape)
 
     conv = old_model.conv
     pool = old_model.pool
+
+    c_channel_reshape = tuple(x for x in (new_img_shape[:]))
+    c_dense_units = 1
+    for i in range(0, 4):
+        c_dense_units = c_dense_units * c_channel_reshape[i]
+
+    d = Dense(c_dense_units)(input_c)
+    d = LeakyReLU(base_models.alpha)(d)
+
+    d = Reshape(c_channel_reshape)(d)
+    d = Concatenate()([input_img, d])
     
     # debug
     #print(n_filters)
@@ -163,7 +172,7 @@ def __add_discriminator_block(old_model, n_filters, filter_size, n_input_layers=
                kernel_size=filter_size, 
                strides=1, 
                padding='same', 
-               kernel_initializer=base_models.weight_init)(input_img)
+               kernel_initializer=base_models.weight_init)(d)
     #d = BatchNormalization()(d)
     d = LeakyReLU(base_models.alpha)(d)
 
@@ -205,13 +214,19 @@ def __add_discriminator_block(old_model, n_filters, filter_size, n_input_layers=
         #prob = current_layer.get_weights()
         
     straight_model = base_models.Discriminator(img_shape=new_img_shape,
-                                        inputs=input_img, 
+                                        inputs=[input_img, input_c], 
                                         outputs=d)
 
+
+    # c dense + reshape to channel:
+    block_old = old_model.layers[1](input_c)
+    for i in range(2, 5):
+        block_old = old_model.layers[i](block_old)
+
     downsample = pool()(input_img)
-    
-    block_old = downsample
-    for i in range(1, n_input_layers):
+    block_old = Concatenate()([downsample, block_old])
+
+    for i in range(6, n_input_layers):
         block_old = old_model.layers[i](block_old)
     
     d = WeightedSum()([block_old, block_new])
@@ -231,7 +246,7 @@ def __add_discriminator_block(old_model, n_filters, filter_size, n_input_layers=
             d = current_layer(d)
         
     fadein_model = base_models.Discriminator(img_shape=new_img_shape, 
-                                      inputs=input_img, 
+                                      inputs=[input_img, input_c], 
                                       outputs=d)
 
     #fadein_model.cur_lod = cur_lod

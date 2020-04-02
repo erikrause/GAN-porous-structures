@@ -1,22 +1,35 @@
 from modules.models import base_models, pggan
-from tensorflow.keras.models import Model
+from keras.models import Model
 #from modules.models import pggan3D as pggan
 #from modules.models import base_models3D as base_models
 from modules.preprocess import DataLoader
 import pickle
 import numpy as np
-from tensorflow.keras import backend
+from keras import backend
 import time
 from PIL import Image
 import matplotlib.pyplot as plt
-from tensorflow.keras.utils import plot_model
-#from typing import Dict, Tuple  # попробовать позже (статическая типизация)
+from keras.utils import plot_model
+from typing import Dict, Tuple  # попробовать позже (статическая типизация)
 import os.path
 import _thread as thread
 import os
 
+from keras.datasets import mnist
+
 class ModelHandler():
-    def __init__(self, directory:str, start_shape:tuple, z_dim:int, n_blocks:int, n_filters, filter_sizes, data_loader:DataLoader, weights_dir=''):     #, discriminators, generators, gans):
+    def __init__(self,
+                 directory:str,
+                 start_shape:tuple,
+                 z_dim:int,
+                 n_blocks:int,
+                 n_filters,
+                 filter_sizes,
+                 data_loader:DataLoader,
+                 weights_dir='',
+                 iteration=None,
+                 model_iteration=None):    #, discriminators, generators, gans):
+
         directory = directory + 'output/'
         self.directory = directory + 'History'
         self.samples_dir = directory + 'samples'
@@ -62,6 +75,9 @@ class ModelHandler():
         #self.sample_interval = 100
         self.data_loader = data_loader
         self.z_global = np.random.normal(0, 1, (self.get_batch_size_for_sample(), self.z_dim))
+
+        imgs = self.data_loader.get_batch(16, self.end_shape[:-1], 1)
+        self.imgs_mean_global = np.mean(imgs)#, axis=(0,1,2,3))
         
         #
 
@@ -69,6 +85,21 @@ class ModelHandler():
             self.load_models_weights_from_dir(weights_dir)
             self.iteration = input('print start iteration')
             self.model_iteration = input('print start model_iteration')
+
+        elif (iteration != None) & (model_iteration != None):
+            self.iteration = iteration
+            self.model_iteration = model_iteration
+
+            if (self.model_iteration % 2 == 0):    # if model is straight
+                self.is_fadein = False
+            else:
+                self.is_fadein = True
+            self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
+            self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
+            
+            print('Starting from input logs.')
+            self.load_models_weights()
+            print('All weights loaded.')
 
         elif self.__check_log_files():
             self.d_losses_real = self.load_from_file('/d_losses_real.log')
@@ -82,6 +113,7 @@ class ModelHandler():
             self.is_fadein = bool(self.d_losses_real[-1][-1])
             self.parameters = self.load_from_file('/parameters')
             self.z_global = self.load_from_file("/z_global.log")
+            self.imgs_mean_global = self.load_from_file("/imgs_mean_global.log")
 
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
             self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
@@ -107,6 +139,8 @@ class ModelHandler():
             print('Starting new logs.')
 
             self.__to_file(self.z_global, "/z_global.log")
+            self.__to_file(self.imgs_mean_global, "/imgs_mean_global.log")
+
 
         
         print('Last checkpoint:')
@@ -302,10 +336,10 @@ class ModelHandler():
             imgs_mean = np.random.random((batch_size, 1))*2 - 1
             ax=(1,2,3)
         else:
-            z = np.random.normal(0, 1, (batch_size, self.z_dim))
-            imgs_mean = np.random.random((batch_size, 1))*2 - 1
+            z = np.random.normal(0, 1, (step, self.z_dim))
+            imgs_mean = np.random.random((step, 1))*2 - 1
             ax=(1,2)
-        gen_imgs = generator.predict(z)
+        gen_imgs = generator.predict([z, imgs_mean])
         rm = np.mean(gen_imgs, axis=ax)
         gen_imgs = (gen_imgs+1)*127.5
         gen_imgs = gen_imgs.astype('uint8')
@@ -317,15 +351,22 @@ class ModelHandler():
         for i in range(0, n_imgs):
             if axis == 3:
                 img = Image.fromarray(gen_imgs[0,i*step,:,:,0])
-            elif axis == 2:
-                img = Image.fromarray(gen_imgs[i,:,:,0])
-            file_name = '{self.samples_dir}/x{resolution}-{fn}-i{iteration}-n{i}-(zm{imgs_mean:2f}-rm{rm:2f})'.format(self=self,
+                file_name = '{self.samples_dir}/x{resolution}-{fn}-i{iteration}-n{i}-(zm{imgs_mean:2f}-rm{rm:2f})'.format(self=self,
                                                                                                resolution=resolution,
                                                                                                fn=fn,
                                                                                                iteration=iteration,
                                                                                                i=i,
                                                                                                imgs_mean=imgs_mean[0][0],   # ONLY FOR 3D!
                                                                                                rm=rm[0][0])
+            elif axis == 2:
+                img = Image.fromarray(gen_imgs[i,:,:,0])
+                file_name = '{self.samples_dir}/x{resolution}-{fn}-i{iteration}-n{i}-(zm{imgs_mean:2f}-rm{rm:2f})'.format(self=self,
+                                                                                               resolution=resolution,
+                                                                                               fn=fn,
+                                                                                               iteration=iteration,
+                                                                                               i=i,
+                                                                                               imgs_mean=imgs_mean[i][0],
+                                                                                               rm=rm[i][0])
 
             
 
@@ -353,7 +394,8 @@ class ModelHandler():
     def gen_two(self, generator:Model, filename:str):
         #imgs_mean = np.array([[0.15]])
 
-        gen_imgs = generator.predict(self.z_global)
+        imgs_mean = np.full((self.z_global.shape[0], 1), self.imgs_mean_global)
+        gen_imgs = generator.predict([self.z_global, imgs_mean])
         gen_imgs = (gen_imgs+1)*127.5
         gen_imgs = gen_imgs.astype('uint8')
 
@@ -373,7 +415,7 @@ class ModelHandler():
         fig.savefig(self.samples_dir + filename+' 2')
         plt.close(fig)'''
 
-    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999):
+    def train(self, n_straight, n_fadein, batch_size:int, sample_interval:int, last_model=99999999, critic_steps=5):
     
         #self. model_iteration = 0 #debug
         while (self.model_iteration < self.n_blocks*2-1) or (self.model_iteration <= last_model):        # need to check end of loop
@@ -391,7 +433,7 @@ class ModelHandler():
             self.resolution_iteration = (self.model_iteration + 1*int(self.is_fadein))//2
             self.current_shape = self.upscale(self.start_shape, k = self.resolution_iteration)
           
-            self.train_block(iterations, batch_size, sample_interval, n_resolution)
+            self.train_block(iterations, batch_size, sample_interval, n_resolution, critic_steps=critic_steps)
 
             #########
             # КОСТЫЛЬ для PLAIDML! TODO: причина бага?
@@ -430,7 +472,7 @@ class ModelHandler():
     ##############
 
 
-    def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int):
+    def train_block(self, iterations:int, batch_size:int, sample_interval:int, n_resolution:int, critic_steps:int):
         # Get models for current resolution layer:
         int_fadein = int(self.is_fadein)
         is_straight = not self.is_fadein
@@ -519,10 +561,6 @@ class ModelHandler():
                 alpha = pggan.update_fadein([g_model, d_model], self.iteration, iterations)
                 #alpha = pggan.update_lod(g_model, d_model, self.iteration, iterations)
 
-                # debug
-                z = np.random.normal(0, 1, (batch_size, self.z_dim))
-                gen_imgs = g_model.predict(z)
-                prob = d_model.predict(gen_imgs)
                 #pggan.update_fadein([g_model, d_model, gan_model], 1, 2) 
             #print('fadein time: ', prob2)
             # -------------------------
@@ -535,13 +573,17 @@ class ModelHandler():
 
             ########################
             # Critic train loop
-            for i in range(0, 5):
+            for i in range(0, critic_steps):
                 # Get a random batch of real images
+                start_batch_time = time.time()
                 imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
                 imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
+                batch_time = time.time() - start_batch_time
             
                 # Generate a batch of noizes
                 z = np.random.normal(0, 1, (batch_size, self.z_dim))
+                real_code = np.random.normal(scale=0.5, size=[batch_size, 1])
+                fake_code = np.random.normal(scale=0.5, size=[batch_size, 1])
                 #gen_imgs = g_model.predict(z)
 
                 # Train the Discriminator
@@ -549,7 +591,7 @@ class ModelHandler():
                 #self.d_loss_fake = d_model.train_on_batch(gen_imgs, fake[:batch_size])
 
                 # Train the critic
-                self.d_loss = wgan.critic_model.train_on_batch([imgs, z],
+                self.d_loss = wgan.critic_model.train_on_batch([imgs, z, imgs_mean],
                                                                [real, fake, dummy])
             # / Critic train loop
             #######################
@@ -563,10 +605,11 @@ class ModelHandler():
             # ---------------------
 
             z = np.random.normal(0, 1, (batch_size, self.z_dim))
-
+            imgs = self.data_loader.get_batch(batch_size, self.end_shape[:-1], downscale)
+            imgs_mean = np.mean(imgs, axis=self.__get_axis(self.current_shape))
             # Train Generator
             #self.g_loss = gan_model.train_on_batch(z, real)
-            self.g_loss = wgan.generator_model.train_on_batch(z, real)
+            self.g_loss = wgan.generator_model.train_on_batch([z, imgs_mean], real)
             
             # Learning rate decay calculating
             #if self.is_fadein:
@@ -603,11 +646,11 @@ class ModelHandler():
                 self.save_models_weights()
                 self.parameters.update({'alpha':alpha, 'is_fadein': self.is_fadein})
                 self.generate_imgs(resolution, self.iteration, g_model, axis, 4, fadein=self.is_fadein)
-                self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
+                #self.sample_next(resolution, self.iteration)       # В ОТДЕЛЬНЫЙ ПОТОК
 
                 # Output training progress
-                print("%d [D loss: 1: %f 2: %f 3: %f 4: %f] [G loss: %f] [Time: %f.4]" %
-                      (self.iteration, self.d_loss[0], self.d_loss[1], self.d_loss[2], self.d_loss[3], self.g_loss, iteration_time))
+                print("%d [D loss: 1: %f 2: %f 3: %f 4: %f] [G loss: %f] [Time: %f.4 Batch_t: %f.4]" %
+                      (self.iteration, self.d_loss[0], self.d_loss[1], self.d_loss[2], self.d_loss[3], self.g_loss, iteration_time, batch_time))
                 #print('Discriminator learning rate: ', backend.get_value(d_model.optimizer.lr))
                 #print('Generator learning rate: ', backend.get_value(gan_model.optimizer.lr))
                 # Output a sample of generated image
@@ -639,8 +682,8 @@ class ModelHandler():
 
         # Plot training losses for Discriminator and Generator
         plt.figure(figsize=(15, 10))
-        plt.plot(iteration_checkpoints, critic_losses.T[0], label="Critic real loss")
-        plt.plot(iteration_checkpoints, critic_losses.T[1], label="Critic fake loss")
+        plt.plot(iteration_checkpoints, critic_losses.T[0], label="Critic summary loss")
+        #plt.plot(iteration_checkpoints, critic_losses.T[1], label="Critic fake loss")
         plt.plot(iteration_checkpoints, gen_losses, label="Generator loss")
 
         plt.xticks(iteration_checkpoints, rotation=90)

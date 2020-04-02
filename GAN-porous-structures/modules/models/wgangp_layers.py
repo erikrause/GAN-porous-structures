@@ -1,32 +1,22 @@
-from tensorflow.keras import backend as K
-#from keras.layers.merge import _Merge
+from keras import backend as K
+from keras.layers.merge import _Merge
 import numpy as np
-from tensorflow.keras.layers import Layer
 ##############################
 # WGAN layers from keras-team:
 
-# for old Keras:
-"""
 class RandomWeightedAverage(_Merge):
-    #Takes a randomly-weighted average of two tensors. In geometric terms, this
-    #outputs a random point on the line between each pair of input points.
-    #Inheriting from _Merge is a little messy but it was the quickest solution I could
-    #think of. Improvements appreciated.
+    """Takes a randomly-weighted average of two tensors. In geometric terms, this
+    outputs a random point on the line between each pair of input points.
+    Inheriting from _Merge is a little messy but it was the quickest solution I could
+    think of. Improvements appreciated."""
 
     def _merge_function(self, inputs):
-        weights = K.random_uniform((K.shape(inputs[0])[0], 1, 1, 1, 1))
+        prob = K.shape(inputs[0])
+        if len(inputs[0].shape) == 5:
+            weights = K.random_uniform((K.shape(inputs[0])[0], 1, 1, 1, 1))
+        elif len(inputs[0].shape) == 4:
+            weights = K.random_uniform((K.shape(inputs[0])[0], 1, 1, 1))
         return (weights * inputs[0]) + ((1 - weights) * inputs[1])
-"""
-
-class RandomWeightedAverage(Layer):
-
-    def call(self, inputs, **kwargs):
-        alpha = K.random_uniform((K.shape(inputs[0])[0], 1, 1, 1, 1))
-        return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
-
-    #def compute_output_shape(self, input_shape):
-    #    return input_shape[0]
-
 
 def gradient_penalty_loss(y_true, y_pred, averaged_samples,
                           gradient_penalty_weight):

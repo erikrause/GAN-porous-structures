@@ -1,9 +1,8 @@
-import tensorflow.keras.backend as K
-from tensorflow.keras.layers import (Layer, InputSpec)
-#from keras.engine.topology import InputSpec
-#from keras.engine.topology import Layer
-#from keras.layers.merge import _Merge
-from tensorflow.keras import activations
+import keras.backend as K
+from keras.engine.topology import InputSpec
+from keras.engine.topology import Layer
+from keras.layers.merge import _Merge
+from keras import activations
 #import tensorflow as tf
 import numpy as np
 
@@ -439,12 +438,12 @@ class LayerNormLayer(Layer):
     def compute_output_shape(self, input_shape):
         return input_shape
 
-#class Subtract(_Merge):
-#    def _merge_function(self, inputs):
-#        output = inputs[0]
-#        for i in range(1, len(inputs)):
-#            output = output-inputs[i]
-#        return output
+class Subtract(_Merge):
+    def _merge_function(self, inputs):
+        output = inputs[0]
+        for i in range(1, len(inputs)):
+            output = output-inputs[i]
+        return output
 
 class GradNorm(Layer):
     def __init__(self, **kwargs):
