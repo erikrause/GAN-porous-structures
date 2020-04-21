@@ -25,6 +25,6 @@ Generated voxel array with 70% of porosity (rendered with marching cubes, 64x64x
 
 ![marching cubes](https://github.com/erikrause/GAN-porous-structures/blob/master/examples/14.png)
 
-Proosity interpolation from 40% to 87% (64x64x64):
+Porosity interpolation from 40% to 87% (64x64x64):
 
 ![porosity interpolation](https://github.com/erikrause/GAN-porous-structures/blob/master/examples/from%2040%25%20to%2087%25.gif)
