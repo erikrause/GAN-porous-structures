@@ -13,8 +13,6 @@ Logs files contains pickle objects with lists of logs.
 
 # Examples
 
-## Berea dataset
-
 Dataset source: https://www.imperial.ac.uk/earth-science/research/research-groups/perm/research/pore-scale-modelling/micro-ct-images-and-networks/berea-sandstone/
 
 Real(left)/fake(right) comprasion (128x128x128):
@@ -23,8 +21,10 @@ Real(left)/fake(right) comprasion (128x128x128):
 
 Generated voxel array with 30% of porosity (rendered with marching cubes, 64x64x64):
 
-![marching cubes](https://github.com/erikrause/GAN-porous-structures/blob/master/examples/14.png)
+<img src="https://github.com/erikrause/GAN-porous-structures/blob/master/examples/14.png" alt="marching cubes" width="50%"/>
 
 Porosity interpolation from 52% to 13% (64x64x64):
 
-![porosity interpolation](https://github.com/erikrause/GAN-porous-structures/blob/master/examples/from%2040%25%20to%2087%25.gif)
+<img src="https://github.com/erikrause/GAN-porous-structures/blob/master/examples/from%2040%25%20to%2087%25.gif" alt="marching cubes" width="50%"/>
+
+[Docker web service](https://hub.docker.com/repository/docker/erikrause/porous_generator)
