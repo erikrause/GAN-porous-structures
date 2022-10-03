@@ -27,4 +27,8 @@ Porosity interpolation from 52% to 13% (64x64x64):
 
 <img src="https://github.com/erikrause/GAN-porous-structures/blob/master/examples/from%2040%25%20to%2087%25.gif" alt="marching cubes" width="50%"/>
 
+# Additional materials
+
 [Docker web service](https://hub.docker.com/repository/docker/erikrause/porous_generator)
+
+[Journal paper](https://doi.org/10.51790/2712-9942-2020-1-3-4) (RSCI)
