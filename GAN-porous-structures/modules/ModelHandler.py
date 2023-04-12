@@ -487,19 +487,19 @@ class ModelHandler():
         wgan:base_models.WGAN = models[2]
 
         d_model.summary()
-        plot_model(d_model, 
-                   to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self), 
-                   show_shapes=True)
+        # plot_model(d_model,
+        #            to_file='{self.directory}/models_diagrams/discriminator-{self.model_iteration}.png'.format(self=self),
+        #            show_shapes=True)
         g_model.summary()
-        plot_model(g_model, 
-                   to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self), 
-                   show_shapes=True)
-        plot_model(wgan.critic_model,
-                   to_file='{self.directory}/models_diagrams/critic_model-{self.model_iteration}.png'.format(self=self), 
-                   show_shapes=True)
-        plot_model(wgan.generator_model, 
-                   to_file='{self.directory}/models_diagrams/generator_model-{self.model_iteration}.png'.format(self=self), 
-                   show_shapes=True)
+        # plot_model(g_model,
+        #            to_file='{self.directory}/models_diagrams/generator-{self.model_iteration}.png'.format(self=self),
+        #            show_shapes=True)
+        # plot_model(wgan.critic_model,
+        #            to_file='{self.directory}/models_diagrams/critic_model-{self.model_iteration}.png'.format(self=self),
+        #            show_shapes=True)
+        # plot_model(wgan.generator_model,
+        #            to_file='{self.directory}/models_diagrams/generator_model-{self.model_iteration}.png'.format(self=self),
+        #            show_shapes=True)
         alpha = -1
         # Labels for real/fake imgs
         real = -np.ones((batch_size, 1))

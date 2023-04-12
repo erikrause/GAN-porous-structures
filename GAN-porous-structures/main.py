@@ -1,21 +1,21 @@
-import sys
-if 'plaidml' in sys.modules:
-
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-amd', action='store_true', help='Enable PlaidML backend (for AMD devices)')
-    args = parser.parse_args()
-
-    #################
-    #ENABLE PLAIDML FOR AMD DEVICES:
-    if args.amd:
-        import os
-        import plaidml
-        import plaidml.keras
-        plaidml.keras.install_backend()
-        os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
-        #import keras
-    #################
+# import sys
+# if 'plaidml' in sys.modules:
+#
+#     import argparse
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument('-amd', action='store_true', help='Enable PlaidML backend (for AMD devices)')
+#     args = parser.parse_args()
+#
+#     #################
+#     #ENABLE PLAIDML FOR AMD DEVICES:
+#     if args.amd:
+#         import os
+#         import plaidml
+#         import plaidml.keras
+#         plaidml.keras.install_backend()
+#         os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+#         #import keras
+#     #################
 
 #-----------------------------
 # Jupyter notebook starts here:
@@ -37,8 +37,8 @@ import numpy as np
 
 # For setting hyperparameters to model:
 from modules.models import base_models
-from tensorflow.keras import initializers
-from tensorflow.keras.optimizers import Adam, RMSprop
+from keras import initializers
+from keras.optimizers import Adam, RMSprop
 
 # Start input image resolution
 channels = 1        # 1 - черно-белое изображение
