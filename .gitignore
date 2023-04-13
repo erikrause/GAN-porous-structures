@@ -347,3 +347,8 @@ output*/
 
 # Debug
 debug*/
+
+GAN-porous-structures/datasets*
+!GAN-porous-structures/datasets/beadpack
+!GAN-porous-structures/datasets/berea
+!GAN-porous-structures/datasets/ketton

@@ -218,7 +218,7 @@ class ModelHandler():
                 last_model = self.models[model][last_shape][0]
                 
                 filters = n_filters[i]
-                if model  == base_models.WGAN:
+                if model == base_models.WGAN:
                     last_discriminators = self.models[base_models.Discriminator][new_shape]
                     last_generators = self.models[base_models.Generator][new_shape]
                     last_model = [last_discriminators, last_generators]
@@ -336,8 +336,8 @@ class ModelHandler():
             imgs_mean = np.random.random((batch_size, 1))*2 - 1
             ax=(1,2,3)
         else:
-            z = np.random.normal(0, 1, (step, self.z_dim))
-            imgs_mean = np.random.random((step, 1))*2 - 1
+            z = np.random.normal(0, 1, (n_imgs, self.z_dim))
+            imgs_mean = np.random.random((n_imgs, 1))*2 - 1
             ax=(1,2)
         gen_imgs = generator.predict([z, imgs_mean])
         rm = np.mean(gen_imgs, axis=ax)

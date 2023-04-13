@@ -249,7 +249,7 @@ class Discriminator(Model):
 
         c_channel_reshape = tuple(x for x in (img_shape[:]))
         c_dense_units = 1
-        for i in range(0, 4):
+        for i in range(0, 3):
             c_dense_units = c_dense_units * c_channel_reshape[i]
 
         d = Dense(c_dense_units)(input_c)

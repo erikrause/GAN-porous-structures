@@ -13,7 +13,6 @@ import os
 
 class DataLoader(object):
     def __init__(self, filename:str, resolution:tuple, n_blocks:int, is_tif = True, dims = 3, is_nearest_batch = False):
-    
 
         self.resolution = resolution
         self.dims = dims
@@ -24,7 +23,7 @@ class DataLoader(object):
             self.dataset = self.__get_data_from_pngs(resolution[0], filename)
 
         self.downsample_network = DownSamplingNetwork(dims, is_nearest_batch)
-        self.dataset = self.dataset[:496,:496,:496]
+        # self.dataset = self.dataset[:496,:496,:496]
         self.datasets = []
 
         self.dataset = np.expand_dims(self.dataset, axis=0)
@@ -38,6 +37,8 @@ class DataLoader(object):
         debug_sample = Image.fromarray(self.datasets[0][0,0,:,:,0])
         debug_path = 'debug/dataset/'
         os.makedirs(debug_path, exist_ok=True)
+        if debug_sample.mode != 'RGB':
+            debug_sample = debug_sample.convert('RGB')
         debug_sample.save(debug_path + 'dataset-0.png')
 
         # Подготовить датасет для разных разрешений, если 3D. 2D downsampling высчитываются в get_batch.
@@ -112,7 +113,7 @@ class DataLoader(object):
       if self.dims == 3:
         n_axes = np.random.randint(0, 4)
       elif self.dims == 2:
-        n_axes = np.random.randint(0, 3)
+        n_axes = np.random.randint(0, 2)
 
       if n_axes == 0:
         return images   # return original
@@ -134,7 +135,7 @@ class DataLoader(object):
           if self.dims == 3:
             n_axes = np.random.randint(1, 4)
           elif self.dims == 2:
-            n_axes = np.random.randint(1, 3)
+            n_axes = 1 # np.random.randint(1, 2)
 
         return images
 

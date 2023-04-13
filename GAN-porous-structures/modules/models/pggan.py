@@ -155,7 +155,7 @@ def __add_discriminator_block(old_model, n_filters, filter_size, n_input_layers=
 
     c_channel_reshape = tuple(x for x in (new_img_shape[:]))
     c_dense_units = 1
-    for i in range(0, 4):
+    for i in range(0, 3):
         c_dense_units = c_dense_units * c_channel_reshape[i]
 
     d = Dense(c_dense_units)(input_c)
