@@ -12,7 +12,7 @@ from PIL import Image
 import os
 
 class DataLoader(object):
-    def __init__(self, filename:str, resolution:tuple, n_blocks:int, is_tif = True, dims = 3, is_nearest_batch = False):
+    def __init__(self, filename: str, filename_label: str, resolution:tuple, n_blocks:int, is_tif = True, dims = 3, is_nearest_batch = False):
 
         self.resolution = resolution
         self.dims = dims
@@ -20,14 +20,14 @@ class DataLoader(object):
         if is_tif:
             self.dataset = self.__get_data_from_tif(filename)
         else:
-            self.dataset = self.__get_data_from_pngs(resolution[0], filename)
+            self.dataset = self.__get_data_from_pngs(resolution[0], filename, filename_label)
 
         self.downsample_network = DownSamplingNetwork(dims, is_nearest_batch)
         # self.dataset = self.dataset[:496,:496,:496]
         self.datasets = []
 
         self.dataset = np.expand_dims(self.dataset, axis=0)
-        self.dataset = np.expand_dims(self.dataset, axis=-1)
+        #self.dataset = np.expand_dims(self.dataset, axis=-1)
         self.datasets.append(self.dataset)
         
 
@@ -83,8 +83,7 @@ class DataLoader(object):
                 images.append(self.datasets[0][0,
                                                image_number,
                                                value[0]:value[0] + resolution[axis],#//downscale, 
-                                               value[1]:value[1] + resolution[axis],#//downscale,
-                                               0])
+                                               value[1]:value[1] + resolution[axis]])
             #if len(tmp) > 128:
             #  tmp = np.asarray(tmp)
             #  tmp = np.expand_dims(tmp, axis=-1)
@@ -97,7 +96,6 @@ class DataLoader(object):
         #images.extend(tmp)
         #self.debug(images[i,:,:])
         images = np.asarray(images)
-        images = np.expand_dims(images, axis=-1)
 
         if self.dims == 2:
             images = self.downsample_network.calculate(images, downscale)
@@ -158,13 +156,15 @@ class DataLoader(object):
         return images
 
 
-    def __get_data_from_pngs(self, count, filename):
-        imageArray = np.empty((self.resolution[0],self.resolution[1],self.resolution[2]))
+    def __get_data_from_pngs(self, count, filename, filename_label):
+        imageArray = np.empty((self.resolution[0],self.resolution[1],self.resolution[2], 2))
         for i in range(0, count):
-            filename = filename.format(i+1)
+            filename = filename.format(i)
+            filename_label = filename_label.format(i)
             image = Image.open(filename)
-            nparray = np.array(image)
-            imageArray[i] = nparray
+            label = Image.open(filename_label)
+            imageArray[i, ..., 0] = np.array(image)
+            imageArray[i, ..., 1] = np.array(label)
             print('\r', i+1, ' image loaded.', end='')
         return imageArray
 
@@ -176,7 +176,7 @@ class DataLoader(object):
 # Network, using for down sampling with linear? interpolation. (For nearest interpolation change AvgPool layer to MaxPool.
 class DownSamplingNetwork():
     def __init__(self, dims, is_nearest=False):
-        start_shape = [1]
+        start_shape = [2]
         for i in range(0, dims):
             start_shape.insert(0, None)
         shape = list(start_shape)

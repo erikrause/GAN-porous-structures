@@ -111,7 +111,7 @@ class Generator(Model):
         g = BatchNormalization()(g)
         g = LeakyReLU(alpha)(g)
     
-        g = self.conv(1, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
+        g = self.conv(2, kernel_size=3, strides=1, padding='same', kernel_initializer = weight_init)(g)
         img = Activation('tanh')(g)
 
         return Model(inputs = [input_z, input_c], outputs = img)

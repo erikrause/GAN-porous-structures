@@ -697,11 +697,7 @@ class ModelHandler():
         plt.close()
 
     def __get_axis(self, shape):
-        if len(shape) - 1 == 3:
-            axis = (1,2,3)
-        elif len(shape) - 1 == 2:
-            axis = (1,2)
-        return axis
+        return (1,2,3)
 
     #for debug:
     def __get_alpha(self, model):

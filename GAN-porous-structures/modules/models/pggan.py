@@ -100,7 +100,7 @@ def __add_generator_block(old_model, n_filters, filter_size):
     #g = LeakyReLU(base_models.alpha)(g)
     
     # add new output layer
-    g = conv(1, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
+    g = conv(2, kernel_size=filter_size, strides=1, padding='same', kernel_initializer=base_models.weight_init)(g)
     out_image = Activation('tanh')(g)
     # define model
     straight_model = base_models.Generator(inputs=old_model.inputs,

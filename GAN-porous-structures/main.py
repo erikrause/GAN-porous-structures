@@ -26,6 +26,7 @@ DIRECTORY = ''
 #DATASET_DIR = 'datasets/berea/{}.png'  -   for png files iteration
 # DATASET_DIR = 'datasets/berea/berea.tif'
 DATASET_DIR = 'datasets/froth_dataset_copy/image/{}.png'
+LABEL_DIR = 'datasets/froth_dataset_copy/label/{}.png'
 is_tif = False      # Change to false for downloading .png files
 
 # Uncomment this for notebook
@@ -42,7 +43,7 @@ from keras import initializers
 from keras.optimizers import Adam, RMSprop
 
 # Start input image resolution
-channels = 1        # 1 - черно-белое изображение
+channels = 2        # 1 - черно-белое изображение
 start_shape = (8,8,channels)
 z_dim = 256         # Для сложных данных увеличить z_dim
 n_blocks = 6        # Количество повышений разрешения. End_shape = start_shape*n_blocks
@@ -72,7 +73,7 @@ img_dims = len(start_shape) - 1
 #dataset_shape = (400,400,400)   # for berea
 #dataset_shape = (256,256,256)   # for ketton
 dataset_shape= (297,600,800)     # for froth
-data_loader = DataLoader(DATASET_DIR, dataset_shape, n_blocks, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
+data_loader = DataLoader(DATASET_DIR, LABEL_DIR, dataset_shape, n_blocks, is_tif=is_tif, dims=img_dims, is_nearest_batch=is_nearest)
 
 # Build a models (если логи лежат в папке History, то веса моделей будут загружены с папки History/models_wetights):
 WEIGHTS_DIR = 'models-custom/'  # не используется
